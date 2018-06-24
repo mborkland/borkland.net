@@ -1,0 +1,424 @@
+#ifndef BINARY_SEARCH_TREE_HPP
+#define BINARY_SEARCH_TREE_HPP
+
+#include "NodeIterator.hpp"
+#include <type_traits>
+#include <iterator>
+#include <initializer_list>
+#include <memory>
+#include <iostream>
+
+namespace bork_lib
+{
+
+template<typename BalanceType, typename KeyType, typename ValueType>
+class BinarySearchTree
+{
+public:
+    struct TreeNode
+    {
+        std::pair<const KeyType, ValueType> data;   // key and value
+        TreeNode* parent;
+        BalanceType balance_info;        // parameter used for balancing
+        std::unique_ptr<TreeNode> left;
+        std::unique_ptr<TreeNode> right;
+        TreeNode(std::pair<const KeyType, ValueType> data, TreeNode* parent = nullptr, BalanceType balance_info = 0)
+                : data{std::move(data)}, parent{parent}, balance_info{balance_info},
+                  left(nullptr), right(nullptr) {}
+
+        friend class NodeIterator<BalanceType, std::pair<const KeyType, ValueType>>;
+        friend class ConstNodeIterator<BalanceType, std::pair<const KeyType, ValueType>>;
+        friend class TreeIterator<BalanceType, KeyType, ValueType>;
+        friend class ConstTreeIterator<BalanceType, KeyType, ValueType>;
+        friend class ReverseTreeIterator<BalanceType, KeyType, ValueType>;
+        friend class ConstReverseTreeIterator<BalanceType, KeyType, ValueType>;
+    };
+
+    using node_iterator = NodeIterator<TreeNode, std::pair<const KeyType, ValueType>>;
+    using tree_iterator = TreeIterator<TreeNode, KeyType, ValueType>;
+    using const_tree_iterator = ConstTreeIterator<TreeNode, KeyType, ValueType>;
+    using reverse_tree_iterator = ReverseTreeIterator<TreeNode, KeyType, ValueType>;
+    using const_reverse_tree_iterator = ConstReverseTreeIterator<TreeNode, KeyType, ValueType>;
+    using size_type = std::size_t;
+
+protected:
+    std::unique_ptr<TreeNode> root;
+    size_type sz;
+    BinarySearchTree<BalanceType, KeyType, ValueType>& operator=(const BinarySearchTree<BalanceType, KeyType, ValueType>& other) = default;  // copy assignment
+    std::unique_ptr<TreeNode> clone_tree(const std::unique_ptr<TreeNode>& other_node, const std::unique_ptr<TreeNode>& prev_node);
+
+    virtual void update(TreeNode* node) = 0;
+    virtual void rebalance_insert(TreeNode* node) = 0;
+    virtual void rebalance_delete(TreeNode* node) = 0;
+    virtual bool rebalance(TreeNode* node) = 0;
+
+    void left_rotate(TreeNode* node);
+    void right_rotate(TreeNode* node);
+
+    TreeNode* find_node(const KeyType& key) const;
+    TreeNode* tree_minimum(TreeNode* node) const;
+    TreeNode* tree_maximum(TreeNode* node) const;
+
+    virtual void delete_node(TreeNode* node) = 0;
+    void transplant(TreeNode* old_node, std::unique_ptr<TreeNode>& new_node);
+    virtual int height(TreeNode* node) = 0;
+
+public:
+    // construction, assignment, and destruction
+    BinarySearchTree() : root(nullptr), sz{0} {}
+    BinarySearchTree(const BinarySearchTree<BalanceType, KeyType, ValueType>& other)
+     : root{std::move(clone_tree(other.root, nullptr))}, sz{other.sz} { }   // copy constructor
+    BinarySearchTree(BinarySearchTree<BalanceType, KeyType, ValueType>&& other) noexcept
+     : root{std::move(other.root)}, sz{other.sz} { }  // move constructor
+    template<typename InputIterator>
+    BinarySearchTree(InputIterator begin, InputIterator end);  // construct from iterator range
+    BinarySearchTree(std::initializer_list<std::pair<KeyType, ValueType>> li)
+     : BinarySearchTree(li.begin(), li.end()) { }   // initializer list constructor
+    BinarySearchTree<BalanceType, KeyType, ValueType>& operator=(BinarySearchTree<BalanceType, KeyType, ValueType>&& other) noexcept;  // move assignment
+    virtual ~BinarySearchTree() { clear(); }  // virtual destructor
+
+    inline bool empty() { return !root; }     // is the tree empty?
+    inline size_type size() { return sz; }  // how many nodes are in the tree?
+
+    // insert, find, and delete functions
+    std::pair<node_iterator&, bool> insert(const std::pair<const KeyType, ValueType>& keyvalue);
+    ValueType set_default(const KeyType& key, const ValueType& value = {});
+    tree_iterator find(const KeyType& key) { return tree_iterator{find_node(key)}; }  // find a node with the given key
+    ValueType& operator[](const KeyType& key);
+    const ValueType& operator[](const KeyType& key) const;
+    bool erase(const KeyType& key);
+    node_iterator& erase(node_iterator& iter);
+    void clear() { root.reset(nullptr); }  // clear the tree
+
+    // iterator functions
+    tree_iterator begin() noexcept { return tree_iterator{tree_minimum(root.get())}; }
+    tree_iterator end() noexcept { return tree_iterator{nullptr}; }
+    const_tree_iterator cbegin() const noexcept { return const_tree_iterator{tree_minimum(root.get())}; }
+    const_tree_iterator cend()  const noexcept { return const_tree_iterator{nullptr}; }
+    reverse_tree_iterator rbegin() noexcept { return reverse_tree_iterator{tree_maximum(root.get())}; }
+    reverse_tree_iterator rend() noexcept { return reverse_tree_iterator{nullptr}; }
+    const_reverse_tree_iterator crbegin() const noexcept { return const_reverse_tree_iterator{tree_maximum(root.get())}; }
+    const_reverse_tree_iterator crend() const noexcept { return const_reverse_tree_iterator{nullptr}; }
+
+    friend class TreeIterator<TreeNode, KeyType, ValueType>;
+    friend class ConstTreeIterator<TreeNode, KeyType, ValueType>;
+    friend class ReverseTreeIterator<TreeNode, KeyType, ValueType>;
+    friend class ConstReverseTreeIterator<TreeNode, KeyType, ValueType>;
+    friend TreeNode* succ<TreeNode>(TreeNode* node);
+    friend TreeNode* pred<TreeNode>(TreeNode* node);
+
+    // testing functions
+    void inorder_print(TreeNode* node);
+    TreeNode* tree_root() { return root.get(); }
+};
+
+/* Move assignment: allows assignment to a tree from an rvalue. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+BinarySearchTree<BalanceType, KeyType, ValueType>& BinarySearchTree<BalanceType, KeyType, ValueType>::
+  operator=(BinarySearchTree<BalanceType, KeyType, ValueType>&& other) noexcept
+{
+    using std::swap;
+    root = std::move(other.root);
+    std::swap(sz, other.sz);
+    return *this;
+}
+
+/* Recursive function that, when called on the root, returns a pointer
+   to the root of a new tree. A copy is made using a top-down approach,
+   where the prev_node parameter provides a pointer to what will be
+   the current node's parent node. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+std::unique_ptr<typename BinarySearchTree<BalanceType, KeyType, ValueType>::TreeNode> BinarySearchTree<BalanceType, KeyType, ValueType>::
+  clone_tree(const std::unique_ptr<TreeNode>& other_node, const std::unique_ptr<TreeNode>& prev_node)
+{
+    if (!other_node)
+        return std::make_unique<TreeNode>(nullptr);
+    
+    auto new_node = std::make_unique<TreeNode>(TreeNode{other_node->data, prev_node, other_node->balance_info});
+    new_node->left = clone_tree(other_node->left, new_node);
+    new_node->right = clone_tree(other_node->right, new_node);
+    return new_node;
+}
+
+/* Helper function used in rebalancing. Performs a left rotation. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+void BinarySearchTree<BalanceType, KeyType, ValueType>::left_rotate(TreeNode* node)
+{
+    auto hold = node->right.get();
+    auto temp_unique = std::move(node->right);
+    if (node == root.get())
+    {
+        root.swap(temp_unique);
+    }
+    else if (node == node->parent->left.get())
+    {
+        node->parent->left.swap(temp_unique);
+    }
+    else
+    {
+        node->parent->right.swap(temp_unique);
+    }
+    
+    hold->parent = node->parent;
+    node->right = std::move(hold->left);
+    if (node->right)
+    {
+        node->right->parent = node;
+    }
+    hold->left = std::move(temp_unique);
+    node->parent = hold;
+    update(node);
+    update(node->parent);
+}
+
+/* Helper function used in rebalancing. Performs a right rotation. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+void BinarySearchTree<BalanceType, KeyType, ValueType>::right_rotate(TreeNode* node)
+{
+    auto hold = (node->left).get();
+    auto temp_unique = std::move(node->left);
+    if (node == root.get())
+    {
+        root.swap(temp_unique);
+    }
+    else if (node == (node->parent->left).get())
+    {
+        node->parent->left.swap(temp_unique);
+    }
+    else
+    {
+        node->parent->right.swap(temp_unique);
+    }
+    
+    hold->parent = node->parent;
+    node->left = std::move(hold->right);
+    if (node->left)
+    {
+        node->left->parent = node;
+    }
+    hold->right = std::move(temp_unique);
+    node->parent = hold;
+    update(node);
+    update(node->parent);
+}
+
+/* Inserts a node in the tree with the given key-value pair. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+std::pair<NodeIterator<typename BinarySearchTree<BalanceType, KeyType, ValueType>::TreeNode, std::pair<const KeyType, ValueType>>&, bool>
+  BinarySearchTree<BalanceType, KeyType, ValueType>::insert(const std::pair<const KeyType, ValueType>& keyvalue)
+{
+    ++sz;
+    tree_iterator iter {};
+    if (empty())
+    {
+        root = std::make_unique<TreeNode>(TreeNode{keyvalue});
+        iter.node = root.get();
+        return {iter, true};
+    }
+
+    auto node = root.get();
+    while (true)  // insert the new node
+    {
+        if (keyvalue.first == (node->data).first)
+        {
+            iter.node = node;
+            --sz;
+            return {iter, false};
+        }
+        else if (keyvalue.first < (node->data).first)
+        { 
+            if (node->left)
+            {
+                node = (node->left).get();
+            }
+            else
+            {
+                node->left = std::make_unique<TreeNode>(TreeNode{keyvalue, node});
+                auto new_node = (node->left).get();
+                rebalance_insert(node);
+                iter.node = new_node;
+                return {iter, true};
+            }
+        }
+        else
+        {
+            if (node->right)
+            {
+                node = (node->right).get();
+            }
+            else
+            {
+                node->right = std::make_unique<TreeNode>(TreeNode{keyvalue, node});
+                auto new_node = (node->right).get();
+                rebalance_insert(node);
+                iter.node = new_node;
+                return {iter, true};
+            }
+        }
+    }
+}
+
+template<typename BalanceType, typename KeyType, typename ValueType>
+ValueType BinarySearchTree<BalanceType, KeyType, ValueType>::set_default(const KeyType& key, const ValueType& value)
+{
+    auto node = find_node(key);
+    if (node)
+    {
+        return (node->data).second;
+    }
+    else
+    {
+        insert({key, value});
+        return value;
+    }
+}
+
+/* Helper function returns a pointer to the node with the given key, if it exists. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+typename BinarySearchTree<BalanceType, KeyType, ValueType>::TreeNode* BinarySearchTree<BalanceType, KeyType, ValueType>::
+  find_node(const KeyType& key) const
+{
+    auto node = root.get();
+    while (node)
+    {
+        if (key == (node->data).first)
+            break;
+        
+        node = (key < (node->data).first) ? (node->left).get() : (node->right).get();
+    }
+
+    return node;
+}
+
+/* Allows retrieval of a value using subscripting. If the key does not
+   exist, then it is added to the tree as the default value for ValueType.
+   The return value is an non-const lvalue reference, so the value can
+   be changed via assignment. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+ValueType& BinarySearchTree<BalanceType, KeyType, ValueType>::operator[](const KeyType& key)
+{
+    auto node = find_node(key);
+    if (node)
+    {
+        return (node->data).second;
+    }
+    else
+    {
+        ValueType value {};
+        return (*(insert({key, value}).first)).second;
+    }
+}
+
+/* Same as above, but returns a const lvalue reference. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+const ValueType& BinarySearchTree<BalanceType, KeyType, ValueType>::operator[](const KeyType& key) const
+{
+    auto node = find_node(key);
+    if (node)
+        return (node->data).second;
+    else
+        throw std::out_of_range("Key does not exist.");
+}
+
+/* Erases a node with a given key, if it exists. Does nothing if the
+   key does not exist. Returns a boolean indicating whether an entry
+   was erased. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+bool BinarySearchTree<BalanceType, KeyType, ValueType>::erase(const KeyType& key)
+{
+    if (empty())
+        throw std::out_of_range("Can't erase from empty tree.");
+
+    auto node = find_node(key);
+    if (node)
+    {
+        delete_node(node);
+        return true;
+    }
+
+    return false;
+}
+
+/* Erases a node using a NodeIterator. Returns an iterator pointing to the
+   successor of the deleted node. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+NodeIterator<typename BinarySearchTree<BalanceType, KeyType, ValueType>::TreeNode, std::pair<const KeyType, ValueType>>&BinarySearchTree<BalanceType, KeyType, ValueType>::
+  erase(NodeIterator<typename BinarySearchTree<BalanceType, KeyType, ValueType>::TreeNode, std::pair<const KeyType, ValueType>>& iter)
+{
+    if (empty())
+        throw std::out_of_range("Can't erase from empty tree.");
+    
+    auto node = iter.node;
+    if (!node)
+        throw std::invalid_argument("Can't delete null pointer.");
+
+    ++iter;
+    delete_node(node);
+    return iter;
+}
+
+/* Helper function used by the delete_node function. Deletes old_node by changing
+   ownership of its parent, which now owns new_node. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+void BinarySearchTree<BalanceType, KeyType, ValueType>::transplant(TreeNode* old_node, std::unique_ptr<TreeNode>& new_node)
+{
+    auto parent = old_node->parent;
+    TreeNode* owner;
+    if (old_node == root.get())
+    {
+        root = std::move(new_node);
+        owner = root.get();
+    }
+    else if (old_node == parent->left.get())
+    {
+        parent->left = std::move(new_node);
+        owner = parent->left.get();
+    }
+    else
+    {
+        parent->right = std::move(new_node);
+        owner = parent->right.get();
+    }
+
+    if (owner)
+        owner->parent = parent;
+}
+
+/* Returns a pointer to the node with lowest key in the subtree
+   rooted at node. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+typename BinarySearchTree<BalanceType, KeyType, ValueType>::TreeNode* BinarySearchTree<BalanceType, KeyType, ValueType>::
+  tree_minimum(TreeNode* node) const
+{
+    while (node->left)
+        node = (node->left).get();
+    return node;
+}
+
+/* Returns a pointer to the node with the highest key in the subtree
+   rooted at node. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+typename BinarySearchTree<BalanceType, KeyType, ValueType>::TreeNode* BinarySearchTree<BalanceType, KeyType, ValueType>::
+  tree_maximum(TreeNode* node) const
+{
+    while (node->right)
+        node = (node->right).get();
+    return node;
+}
+
+
+// testing function
+template<typename BalanceType, typename KeyType, typename ValueType>
+void BinarySearchTree<BalanceType, KeyType, ValueType>::inorder_print(TreeNode* node)
+{
+    if (!node)
+        return;
+    
+    inorder_print(node->left.get());
+    std::cout << node->data.first << '/' << node->balance_info << ' ';
+    inorder_print(node->right.get());
+}
+
+}  // end namespace
+
+#endif
