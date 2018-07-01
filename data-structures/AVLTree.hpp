@@ -13,16 +13,19 @@ namespace bork_lib
 template<typename KeyType, typename ValueType>
 class AVLTree : public BinarySearchTree<int, KeyType, ValueType>
 {
+public:
     using TreeNode = typename BinarySearchTree<int, KeyType, ValueType>::TreeNode;
     using BinarySearchTree<int, KeyType, ValueType>::root;
     using BinarySearchTree<int, KeyType, ValueType>::sz;
     using BinarySearchTree<int, KeyType, ValueType>::clone_tree;
     using BinarySearchTree<int, KeyType, ValueType>::left_rotate;
     using BinarySearchTree<int, KeyType, ValueType>::right_rotate;
+    using BinarySearchTree<int, KeyType, ValueType>::insert;
     using BinarySearchTree<int, KeyType, ValueType>::tree_minimum;
     using BinarySearchTree<int, KeyType, ValueType>::transplant;
     using BinarySearchTree<int, KeyType, ValueType>::clear;
-    using BinarySearchTree<int, KeyType, ValueType>::inorder_print;
+    using BinarySearchTree<int, KeyType, ValueType>::inorder_print;  // testing function
+
 private:
     int height(TreeNode* node) noexcept { return node ? node->balance_info : -1; } // the AVL height of a node
     void update(TreeNode* node);
@@ -32,8 +35,6 @@ private:
     void delete_node(TreeNode* node);
 
 public:
-
-    using BinarySearchTree<int, KeyType, ValueType>::insert;
     // construction, assignment, and destruction
     AVLTree() : BinarySearchTree<int, KeyType, ValueType>::BinarySearchTree() { }
     AVLTree(const AVLTree<KeyType, ValueType>& other)
@@ -72,14 +73,18 @@ AVLTree<KeyType, ValueType>::AVLTree(InputIterator begin, InputIterator end) : A
 template<typename KeyType, typename ValueType>
 AVLTree<KeyType, ValueType>& AVLTree<KeyType, ValueType>::operator=(const AVLTree<KeyType, ValueType> &other)
 {
-    if (this != &other)
+    /*if (this != &other)
     {
         clear();
         root = clone_tree(other.root, nullptr);
         sz = other.sz;
     }
 
-    return *this;
+    return *this;*/
+
+    return *this = dynamic_cast<AVLTree<KeyType, ValueType>&>(
+            BinarySearchTree<int, KeyType, ValueType>::
+            operator=(other));
 }
 
 /* Move assignent: allows assignment to a tree from an rvalue. */

@@ -14,24 +14,16 @@ namespace bork_lib
 template<typename BalanceType, typename KeyType, typename ValueType>
 class BinarySearchTree
 {
-public:
+protected:
     struct TreeNode
     {
         std::pair<const KeyType, ValueType> data;   // key and value
         TreeNode* parent;
         BalanceType balance_info;        // parameter used for balancing
-        std::unique_ptr<TreeNode> left;
-        std::unique_ptr<TreeNode> right;
+        std::unique_ptr<TreeNode> left = std::unique_ptr<TreeNode>(nullptr);
+        std::unique_ptr<TreeNode> right = std::unique_ptr<TreeNode>(nullptr);
         TreeNode(std::pair<const KeyType, ValueType> data, TreeNode* parent = nullptr, BalanceType balance_info = 0)
-                : data{std::move(data)}, parent{parent}, balance_info{balance_info},
-                  left(nullptr), right(nullptr) {}
-
-        friend class NodeIterator<BalanceType, std::pair<const KeyType, ValueType>>;
-        friend class ConstNodeIterator<BalanceType, std::pair<const KeyType, ValueType>>;
-        friend class TreeIterator<BalanceType, KeyType, ValueType>;
-        friend class ConstTreeIterator<BalanceType, KeyType, ValueType>;
-        friend class ReverseTreeIterator<BalanceType, KeyType, ValueType>;
-        friend class ConstReverseTreeIterator<BalanceType, KeyType, ValueType>;
+                : data{std::move(data)}, parent{parent}, balance_info{balance_info} {}
     };
 
     using node_iterator = NodeIterator<TreeNode, std::pair<const KeyType, ValueType>>;
@@ -41,10 +33,9 @@ public:
     using const_reverse_tree_iterator = ConstReverseTreeIterator<TreeNode, KeyType, ValueType>;
     using size_type = std::size_t;
 
-protected:
     std::unique_ptr<TreeNode> root;
     size_type sz;
-    BinarySearchTree<BalanceType, KeyType, ValueType>& operator=(const BinarySearchTree<BalanceType, KeyType, ValueType>& other) = default;  // copy assignment
+
     std::unique_ptr<TreeNode> clone_tree(const std::unique_ptr<TreeNode>& other_node, const std::unique_ptr<TreeNode>& prev_node);
 
     virtual void update(TreeNode* node) = 0;
@@ -70,10 +61,9 @@ public:
      : root{std::move(clone_tree(other.root, nullptr))}, sz{other.sz} { }   // copy constructor
     BinarySearchTree(BinarySearchTree<BalanceType, KeyType, ValueType>&& other) noexcept
      : root{std::move(other.root)}, sz{other.sz} { }  // move constructor
-    template<typename InputIterator>
-    BinarySearchTree(InputIterator begin, InputIterator end);  // construct from iterator range
     BinarySearchTree(std::initializer_list<std::pair<KeyType, ValueType>> li)
      : BinarySearchTree(li.begin(), li.end()) { }   // initializer list constructor
+    BinarySearchTree<BalanceType, KeyType, ValueType>& operator=(const BinarySearchTree<BalanceType, KeyType, ValueType>& other);  // copy assignment
     BinarySearchTree<BalanceType, KeyType, ValueType>& operator=(BinarySearchTree<BalanceType, KeyType, ValueType>&& other) noexcept;  // move assignment
     virtual ~BinarySearchTree() { clear(); }  // virtual destructor
 
@@ -112,6 +102,20 @@ public:
     TreeNode* tree_root() { return root.get(); }
 };
 
+/* Copy assignment: allows assignment to a tree from an lvalue. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+BinarySearchTree<BalanceType, KeyType, ValueType>& BinarySearchTree<BalanceType, KeyType, ValueType>::operator=(const BinarySearchTree<BalanceType, KeyType, ValueType>& other)
+{
+    if (this != &other)
+    {
+        clear();
+        root = clone_tree(other.root, nullptr);
+        sz = other.sz;
+    }
+
+    return *this;
+}
+
 /* Move assignment: allows assignment to a tree from an rvalue. */
 template<typename BalanceType, typename KeyType, typename ValueType>
 BinarySearchTree<BalanceType, KeyType, ValueType>& BinarySearchTree<BalanceType, KeyType, ValueType>::
@@ -132,9 +136,9 @@ std::unique_ptr<typename BinarySearchTree<BalanceType, KeyType, ValueType>::Tree
   clone_tree(const std::unique_ptr<TreeNode>& other_node, const std::unique_ptr<TreeNode>& prev_node)
 {
     if (!other_node)
-        return std::make_unique<TreeNode>(nullptr);
+        return std::unique_ptr<TreeNode>(nullptr);
     
-    auto new_node = std::make_unique<TreeNode>(TreeNode{other_node->data, prev_node, other_node->balance_info});
+    auto new_node = std::make_unique<TreeNode>(TreeNode{other_node->data, prev_node.get(), other_node->balance_info});
     new_node->left = clone_tree(other_node->left, new_node);
     new_node->right = clone_tree(other_node->right, new_node);
     return new_node;
@@ -304,8 +308,7 @@ ValueType& BinarySearchTree<BalanceType, KeyType, ValueType>::operator[](const K
     }
     else
     {
-        ValueType value {};
-        return (*(insert({key, value}).first)).second;
+        return (*(insert({key, ValueType{}}).first)).second;
     }
 }
 
