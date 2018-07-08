@@ -180,27 +180,44 @@ void insert_test()
 
     assert(!did_insert_first_attempt && "First duplicate insertion check failed.\n");
     assert(!did_insert_second_attempt && "Second duplicate insertion check failed.\n");
+    assert(tree2.size() == 5 && "Duplicate insertion size check failed.\n");
 
     AVLTree<int, int> tree3 {};
-    for (int i = 0; i <= 20; ++i) {
+    int n = 21;
+    for (int i = 0; i < n; ++i) {
         if (i % 2 == 0) {
             tree3.insert({i,i});
         }
     }
-
     for (auto it = tree3.begin(); it != tree3.end(); ++it) {
-        // TODO: insertion iterator test;
+        int odd = it->first + 1;
+        it = tree3.insert({odd, odd}).first;
     }
+    int key_sum {};
+    std::for_each(tree3.begin(), tree3.end(), [&key_sum](auto elem) { key_sum += elem.first; });
+    assert(key_sum == (n*(n+1))/2 && "Insertion return iterator check failed.\n");
 }
 
 void set_default_test()
 {
-
+    AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+    int default_val = 12;
+    int first_check = tree.set_default(1, default_val);
+    int second_check = tree.set_default(6, default_val);
+    assert(first_check != default_val && "First set_default return value test failed.\n");
+    assert(tree[1] != default_val && "First set_default insertion test failed.\n");
+    assert(second_check == default_val && "Second set_default return value test failed.\n");
+    assert(tree[6] == default_val && "Second set_default insertion test failed.\n");
 }
 
 void find_test()
 {
-
+    AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+    auto first_check = tree.find(2);
+    auto second_check = tree.find(-17);
+    assert(first_check->first == 2 && "Find with element found test failed.\n");
+    assert(first_check->second == 7 && "Find with element found test failed.\n");
+    assert(second_check == tree.end() && "Find with element not found test failed.\n");
 }
 
 void subscript_test()
