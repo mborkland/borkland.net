@@ -73,18 +73,14 @@ AVLTree<KeyType, ValueType>::AVLTree(InputIterator begin, InputIterator end) : A
 template<typename KeyType, typename ValueType>
 AVLTree<KeyType, ValueType>& AVLTree<KeyType, ValueType>::operator=(const AVLTree<KeyType, ValueType> &other)
 {
-    /*if (this != &other)
+    if (this != &other)
     {
         clear();
         root = clone_tree(other.root, nullptr);
         sz = other.sz;
     }
 
-    return *this;*/
-
-    return *this = dynamic_cast<AVLTree<KeyType, ValueType>&>(
-            BinarySearchTree<int, KeyType, ValueType>::
-            operator=(other));
+    return *this;
 }
 
 /* Move assignent: allows assignment to a tree from an rvalue. */
