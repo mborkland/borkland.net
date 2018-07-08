@@ -43,8 +43,8 @@ public:
     : BinarySearchTree<int, KeyType, ValueType>::BinarySearchTree(std::forward<AVLTree<KeyType, ValueType>>(other)) { }   // move constructor
     template<typename InputIterator> AVLTree(InputIterator begin, InputIterator end);  // construct from iterator range
     AVLTree(std::initializer_list<std::pair<KeyType, ValueType>> li) : AVLTree(li.begin(), li.end()) { }  // initializer list constructor
-    AVLTree<KeyType, ValueType>& operator=(const AVLTree<KeyType, ValueType>& other);  // copy assignment
-    AVLTree<KeyType, ValueType>& operator=(AVLTree<KeyType, ValueType>&& other) noexcept;     // move assignment
+    AVLTree<KeyType, ValueType>& operator=(const AVLTree<KeyType, ValueType>& other) = default;  // copy assignment
+    AVLTree<KeyType, ValueType>& operator=(AVLTree<KeyType, ValueType>&& other) = default;     // move assignment
 
     inline int tree_height() const noexcept { return root ? root->balance_info : -1; }  // the height of the tree
 
@@ -67,29 +67,6 @@ AVLTree<KeyType, ValueType>::AVLTree(InputIterator begin, InputIterator end) : A
         insert({begin->first, begin->second});
         ++begin;
     }
-}
-
-/* Copy assignment: allows assignment to a tree from an lvalue. */
-template<typename KeyType, typename ValueType>
-AVLTree<KeyType, ValueType>& AVLTree<KeyType, ValueType>::operator=(const AVLTree<KeyType, ValueType> &other)
-{
-    if (this != &other)
-    {
-        clear();
-        root = clone_tree(other.root, nullptr);
-        sz = other.sz;
-    }
-
-    return *this;
-}
-
-/* Move assignent: allows assignment to a tree from an rvalue. */
-template<typename KeyType, typename ValueType>
-AVLTree<KeyType, ValueType>& AVLTree<KeyType, ValueType>::operator=(AVLTree<KeyType, ValueType>&& other) noexcept
-{
-    return *this = dynamic_cast<AVLTree<KeyType, ValueType>&>(
-        BinarySearchTree<int, KeyType, ValueType>::
-        operator=(std::forward<AVLTree<KeyType, ValueType>>(other)));
 }
 
 /* Updates the AVL height of a node. */

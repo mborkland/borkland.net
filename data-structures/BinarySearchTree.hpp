@@ -37,7 +37,6 @@ protected:
     std::unique_ptr<TreeNode> root;
     size_type sz;
 
-    BinarySearchTree<BalanceType, KeyType, ValueType>& operator=(const BinarySearchTree<BalanceType, KeyType, ValueType>& other) = default;  // copy assignment
     std::unique_ptr<TreeNode> clone_tree(const std::unique_ptr<TreeNode>& other_node, const std::unique_ptr<TreeNode>& prev_node);
 
     virtual void update(TreeNode* node) = 0;
@@ -67,6 +66,7 @@ public:
      : root{std::move(other.root)}, sz{other.sz} { }  // move constructor
     BinarySearchTree(std::initializer_list<std::pair<KeyType, ValueType>> li)
      : BinarySearchTree(li.begin(), li.end()) { }   // initializer list constructor
+    BinarySearchTree<BalanceType, KeyType, ValueType>& operator=(const BinarySearchTree<BalanceType, KeyType, ValueType>& other);  // copy assignment
     BinarySearchTree<BalanceType, KeyType, ValueType>& operator=(BinarySearchTree<BalanceType, KeyType, ValueType>&& other) noexcept;  // move assignment
     virtual ~BinarySearchTree() { clear(); }  // virtual destructor
 
@@ -104,6 +104,20 @@ public:
     void inorder_print(TreeNode* node);
     TreeNode* tree_root() { return root.get(); }
 };
+
+/* Copy assignment: allows assignment to a tree from an lvalue. */
+template<typename BalanceType, typename KeyType, typename ValueType>
+BinarySearchTree<BalanceType, KeyType, ValueType>& BinarySearchTree<BalanceType, KeyType, ValueType>::
+  operator=(const BinarySearchTree<BalanceType, KeyType, ValueType>& other)
+{
+    if (this != &other)
+    {
+        root = std::move(clone_tree(other.root, nullptr));
+        sz = other.sz;
+    }
+
+    return *this;
+}
 
 /* Move assignment: allows assignment to a tree from an rvalue. */
 template<typename BalanceType, typename KeyType, typename ValueType>

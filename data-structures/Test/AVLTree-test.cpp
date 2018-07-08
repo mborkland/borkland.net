@@ -222,12 +222,17 @@ void find_test()
 
 void subscript_test()
 {
-
+    AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+    assert(tree[3] == 1 && "Subscript without modification test failed.\n");
+    tree[3] = 5;
+    assert(tree[3] == 5 && "Subscript with modification test failed.\n");
 }
 
 void const_subscript_test()
 {
-
+    const AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+    assert(tree[3] == 1 && "Const subscript without modification test failed.\n");
+    //tree[3] = 5;   // if uncommented, compile-time error
 }
 
 void erase_by_key_test()

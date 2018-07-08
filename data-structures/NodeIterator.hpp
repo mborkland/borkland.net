@@ -32,9 +32,16 @@ public:
     virtual NodeIterator<NodeType, ValueType>& operator--() = 0;
     virtual ValueType& operator*() { return node->data; }
     virtual ValueType* operator->() { return &(node->data); }
-    virtual ~NodeIterator() { }
-    friend bool operator==(const NodeIterator<NodeType, ValueType>& lhs, const NodeIterator<NodeType, ValueType>& rhs) noexcept;
-    friend bool operator!=(const NodeIterator<NodeType, ValueType>& lhs, const NodeIterator<NodeType, ValueType>& rhs) noexcept;
+    bool operator==(const NodeIterator<NodeType, ValueType>& other) const noexcept
+    {
+        return node == other.node;
+    }
+
+    bool operator!=(const NodeIterator<NodeType, ValueType>& other) const noexcept
+    {
+        return !operator==(other);
+    }
+    virtual ~NodeIterator() = default;
     friend class DLinkedList<ValueType>;
     friend class SLinkedList<ValueType>;
     template<typename B, typename K, typename V>
@@ -44,18 +51,6 @@ public:
     template<typename K, typename V>
     friend class RedBlackTree;
 };
-
-template<typename NodeType, typename ValueType>
-bool operator==(const NodeIterator<NodeType, ValueType>& lhs, const NodeIterator<NodeType, ValueType>& rhs) noexcept
-{
-    return lhs.node == rhs.node;
-}
-
-template<typename NodeType, typename ValueType>
-bool operator!=(const NodeIterator<NodeType, ValueType>& lhs, const NodeIterator<NodeType, ValueType>& rhs) noexcept
-{
-    return !(lhs == rhs);
-}
 
 template<typename NodeType, typename ValueType>
 class ConstNodeIterator
@@ -71,9 +66,16 @@ public:
     virtual ConstNodeIterator<NodeType, ValueType>& operator--() = 0;
     virtual const ValueType& operator*() { return node->data; }
     virtual const ValueType* operator->() { return &(node->data); }
-    virtual ~ConstNodeIterator() { }
-    friend bool operator==(const ConstNodeIterator<NodeType, ValueType>& lhs, const ConstNodeIterator<NodeType, ValueType>& rhs) noexcept;
-    friend bool operator!=(const ConstNodeIterator<NodeType, ValueType>& lhs, const ConstNodeIterator<NodeType, ValueType>& rhs) noexcept;
+    bool operator==(const ConstNodeIterator<NodeType, ValueType>& other) const noexcept
+    {
+        return node == other.node;
+    }
+
+    bool operator!=(const ConstNodeIterator<NodeType, ValueType>& other) const noexcept
+    {
+        return !operator==(other);
+    }
+    virtual ~ConstNodeIterator() = default;
     friend class DLinkedList<ValueType>;
     friend class SLinkedList<ValueType>;
     template<typename B, typename K, typename V>
@@ -83,19 +85,6 @@ public:
     template<typename K, typename V>
     friend class RedBlackTree;
 };
-
-template<typename NodeType, typename ValueType>
-bool operator==(const ConstNodeIterator<NodeType, ValueType>& lhs, const ConstNodeIterator<NodeType, ValueType>& rhs) noexcept
-{
-    using ConstNodeIterator<NodeType, ValueType>::node;
-    return lhs.node == rhs.node;
-}
-
-template<typename NodeType, typename ValueType>
-bool operator!=(const ConstNodeIterator<NodeType, ValueType>& lhs, const ConstNodeIterator<NodeType, ValueType>& rhs) noexcept
-{
-    return !(lhs == rhs);
-}
 
 template<typename ValueType>
 using DNodeType = typename DLinkedList<ValueType>::DNode;
