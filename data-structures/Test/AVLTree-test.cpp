@@ -1,8 +1,9 @@
 #include <cassert>
 #include <iostream>
 #include <random>
-#include <unordered_set>
+#include <set>
 #include <string>
+#include <unordered_set>
 #include <vector>
 #include "../AVLTree.hpp"
 
@@ -151,13 +152,13 @@ void insert_test()
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
-    std::unordered_set<int> unique_values {};
+    std::unordered_set<int> unique_keys {};
     for (int i = 0; i < num_insertions; ++i) {
-        unique_values.insert(key_dist(mt));
+        unique_keys.insert(key_dist(mt));
     }
 
     std::vector<std::pair<int, int>> pairs_to_insert {};
-    for (const auto& x : unique_values) {
+    for (const auto& x : unique_keys) {
         pairs_to_insert.emplace_back(x, val_dist(mt));
     }
 
@@ -237,12 +238,77 @@ void const_subscript_test()
 
 void erase_by_key_test()
 {
+    std::mt19937 mt(rd());
+    std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
+    std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
+    std::set<int> unique_keys {};
+    for (int i = 0; i < num_insertions; ++i) {
+        unique_keys.insert(key_dist(mt));
+    }
+
+    AVLTree<int, int> tree {};
+    for (const auto& x : unique_keys) {
+        tree.insert({x, val_dist(mt)});
+    }
+
+    std::vector<int> keys_inserted {unique_keys.begin(), unique_keys.end()};
+    std::vector<int> keys_deleted {};
+    std::uniform_int_distribution<> deleted_key_dist{-max_key_value, max_key_value};
+    for (int i = 0; i < num_insertions / 2; ++i) {
+        int key_to_delete = deleted_key_dist(mt);
+        if (tree.erase(key_to_delete)) {
+            keys_deleted.emplace_back(key_to_delete);
+        }
+    }
+
+    std::vector<int> keys_remaining {};
+    for (const auto& x : tree) {
+        keys_remaining.emplace_back(x.first);
+    }
+
+    std::sort(keys_inserted.begin(), keys_inserted.end());
+    std::sort(keys_deleted.begin(), keys_deleted.end());
+    std::vector<int> diff {};
+    std::set_difference(keys_inserted.begin(), keys_inserted.end(),
+                        keys_deleted.begin(), keys_deleted.end(), std::back_inserter(diff));
+
+    assert(keys_remaining == diff && "Erase by key test failed.\n");
+}
+
+bool either_is_odd(std::pair<int, int> keyvalue)
+{
+    return keyvalue.first % 2 == 1 || keyvalue.second % 2 == 1;
+}
+
+bool both_are_even(std::pair<int, int> keyvalue)
+{
+    return keyvalue.first % 2 == 0 && keyvalue.second % 2 == 0;
 }
 
 void erase_by_iter_test()
 {
+    std::mt19937 mt(rd());
+    std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
+    std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
+    AVLTree<int, int> tree {};
+    // TODO: fix this
+//    for (int i = 0; i < num_insertions; ++i) {
+//        tree.insert({key_dist(mt), val_dist(mt)});
+//    }
+//
+//    for (auto it = tree.begin(); it != tree.end(); ) {
+//        if (either_is_odd(*it)) {
+//            it = tree.erase(it);
+//        } else {
+//            ++it;
+//        }
+//    }
+//
+//    for (const auto& x : tree) {
+//        assert(both_are_even(x) && "Erase by iterator test failed.\n");
+//    }
 }
 
 int main()

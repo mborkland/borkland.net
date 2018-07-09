@@ -21,6 +21,10 @@ protected:
     NodeType* node;
 
 public:
+    using value_type = ValueType;
+    using difference_type = int;
+    using pointer = ValueType*;
+    using reference = ValueType&;
     NodeIterator(NodeType* node = nullptr) : node{node} {}
     NodeIterator(const NodeIterator<NodeType, ValueType>& other) : node(other.node) {}
     NodeIterator<NodeType, ValueType>& operator=(const NodeIterator<NodeType, ValueType>& other)
@@ -59,6 +63,10 @@ protected:
     NodeType* node;
 
 public:
+    using value_type = const ValueType;
+    using difference_type = int;
+    using pointer = const ValueType*;
+    using reference = const ValueType&;
     ConstNodeIterator(NodeType* node = nullptr) : node{node} {}
     ConstNodeIterator(const ConstNodeIterator<NodeType, ValueType>& other) : node(other.node) {}
     ConstNodeIterator<NodeType, ValueType>& operator=(const ConstNodeIterator<NodeType, ValueType>& other) = delete;
@@ -285,6 +293,11 @@ template<typename NodeType, typename KeyType, typename ValueType>
 class TreeIterator : public NodeIterator<NodeType, std::pair<const KeyType, ValueType>>
 {
 public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using typename NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::value_type;
+    using typename NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::difference_type;
+    using typename NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::pointer;
+    using typename NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::reference;
     using NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::NodeIterator;
     using NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::node;
     TreeIterator<NodeType, KeyType, ValueType>& operator=(const NodeIterator<NodeType, std::pair<const KeyType, ValueType>>& other)
@@ -323,6 +336,11 @@ template<typename NodeType, typename KeyType, typename ValueType>
 class ConstTreeIterator : public ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>
 {
 public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using typename ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::value_type;
+    using typename ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::difference_type;
+    using typename ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::pointer;
+    using typename ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::reference;
     using ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::ConstNodeIterator;
     using ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::node;
     ConstTreeIterator<NodeType, KeyType, ValueType>& operator=(const ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>& other)
@@ -361,6 +379,11 @@ template<typename NodeType, typename KeyType, typename ValueType>
 class ReverseTreeIterator : public NodeIterator<NodeType, std::pair<const KeyType, ValueType>>
 {
 public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using typename NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::value_type;
+    using typename NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::difference_type;
+    using typename NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::pointer;
+    using typename NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::reference;
     using NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::NodeIterator;
     using NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::node;
     ReverseTreeIterator<NodeType, KeyType, ValueType>& operator=(const NodeIterator<NodeType, std::pair<const KeyType, ValueType>>& other)
@@ -399,6 +422,11 @@ template<typename NodeType, typename KeyType, typename ValueType>
 class ConstReverseTreeIterator : public ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>
 {
 public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using typename ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::value_type;
+    using typename ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::difference_type;
+    using typename ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::pointer;
+    using typename ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::reference;
     using ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::ConstNodeIterator;
     using ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::node;
     ConstReverseTreeIterator<NodeType, KeyType, ValueType>& operator=(const NodeIterator<NodeType, std::pair<const KeyType, ValueType>>& other)
