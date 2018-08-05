@@ -1,9 +1,9 @@
 #ifndef REDBLACKTREE_HPP
 #define REDBLACKTREE_HPP
 
-#include "BinarySearchTree.hpp"
 #include <iostream>
 #include <utility>
+#include "BinarySearchTree.hpp"
 
 namespace bork_lib
 {

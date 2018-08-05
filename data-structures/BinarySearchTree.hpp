@@ -1,12 +1,12 @@
 #ifndef BINARY_SEARCH_TREE_HPP
 #define BINARY_SEARCH_TREE_HPP
 
-#include "NodeIterator.hpp"
-#include <type_traits>
-#include <iterator>
 #include <initializer_list>
-#include <memory>
 #include <iostream>
+#include <iterator>
+#include <memory>
+#include <type_traits>
+#include "NodeIterator.hpp"
 
 namespace bork_lib
 {

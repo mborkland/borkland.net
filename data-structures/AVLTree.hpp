@@ -1,11 +1,11 @@
 #ifndef AVLTREE_HPP
 #define AVLTREE_HPP
 
-#include "BinarySearchTree.hpp"
-#include <cmath>
 #include <algorithm>
-#include <utility>
+#include <cmath>
 #include <memory>
+#include <utility>
+#include "BinarySearchTree.hpp"
 
 namespace bork_lib
 {

@@ -3,7 +3,6 @@
 
 #include <stdexcept>
 #include <utility>
-#include "BinarySearchTree.hpp"
 
 namespace bork_lib
 {
@@ -103,7 +102,13 @@ using DNodeType = typename DLinkedList<ValueType>::DNode;
 
 template<typename ValueType>
 class ListIterator : public NodeIterator<DNodeType<ValueType>, ValueType>
-{   
+{
+    using iterator_category = std::bidirectional_iterator_tag;
+    using iterator_category = std::bidirectional_iterator_tag;
+    using typename NodeIterator<DNodeType, ValueType>::value_type;
+    using typename NodeIterator<DNodeType, ValueType>::difference_type;
+    using typename NodeIterator<DNodeType, ValueType>::pointer;
+    using typename NodeIterator<DNodeType, ValueType>::reference;
     using NodeIterator<DNodeType<ValueType>, ValueType>::NodeIterator;
     using NodeIterator<DNodeType<ValueType>, ValueType>::node;
 public:
@@ -113,7 +118,7 @@ public:
     }
     virtual ListIterator<ValueType>& operator++() { node = node->next; return *this; }
     virtual ListIterator<ValueType>& operator--() { node = node->prev; return *this; }
-    virtual ListIterator<ValueType> operator++(int)
+    virtual const ListIterator<ValueType> operator++(int)
     {
         ListIterator<ValueType> temp{*this};
         operator++();
