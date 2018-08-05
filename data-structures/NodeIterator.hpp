@@ -25,7 +25,7 @@ public:
     using difference_type = int;
     using pointer = ValueType*;
     using reference = ValueType&;
-    NodeIterator(NodeType* node = nullptr) : node{node} {}
+    explicit NodeIterator(NodeType* node = nullptr) : node{node} {}
     NodeIterator(const NodeIterator<NodeType, ValueType>& other) : node(other.node) {}
     NodeIterator<NodeType, ValueType>& operator=(const NodeIterator<NodeType, ValueType>& other)
     {
@@ -67,9 +67,13 @@ public:
     using difference_type = int;
     using pointer = const ValueType*;
     using reference = const ValueType&;
-    ConstNodeIterator(NodeType* node = nullptr) : node{node} {}
+    explicit ConstNodeIterator(NodeType* node = nullptr) : node{node} {}
     ConstNodeIterator(const ConstNodeIterator<NodeType, ValueType>& other) : node(other.node) {}
-    ConstNodeIterator<NodeType, ValueType>& operator=(const ConstNodeIterator<NodeType, ValueType>& other) = delete;
+    ConstNodeIterator<NodeType, ValueType>& operator=(const ConstNodeIterator<NodeType, ValueType>& other)
+    {
+        node = other.node;
+        return *this;
+    }
     virtual ConstNodeIterator<NodeType, ValueType>& operator++() = 0;
     virtual ConstNodeIterator<NodeType, ValueType>& operator--() = 0;
     virtual const ValueType& operator*() { return node->data; }
@@ -247,40 +251,32 @@ template<typename NodeType>
 NodeType* succ(NodeType* node)
 {
     NodeType* succ_node;
-    if (node->right)  // find the leftmost node in node's right subtree
-    {
+    if (node->right) {  // find the leftmost node in node's right subtree
         succ_node = node->right.get();
         while (succ_node->left)
             succ_node = succ_node->left.get();
-    }
-    else  // find the lowest ancestor of node whose left child is also
-    {     // an ancestor of node
+    } else {  // find the lowest ancestor of node whose left child is also an ancestor of node
         succ_node = node->parent;
-        while (succ_node && node == succ_node->right.get())
-        {
+        while (succ_node && node == succ_node->right.get()) {
             node = succ_node;
             succ_node = succ_node->parent;
         }
     }
 
-    return succ_node;    
+    return succ_node;
 }
 
 template<typename NodeType>
 NodeType* pred(NodeType* node)
 {
     NodeType* pred_node;
-    if (node->left)  // find the rightmost node in node's left subtree
-    {
+    if (node->left) {  // find the rightmost node in node's left subtree
         pred_node = node->left.get();
         while (pred_node->right)
             pred_node = pred_node->right.get();
-    }
-    else  // find the lowest ancestor of node whose right child is also
-    {     // an ancestor of node
+    } else {  // find the lowest ancestor of node whose right child is also an ancestor of node
         pred_node = node->parent;
-        while (pred_node && node == pred_node->left.get())
-        {
+        while (pred_node && node == pred_node->left.get()) {
             node = pred_node;
             pred_node = pred_node->parent;
         }

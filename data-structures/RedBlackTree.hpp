@@ -23,7 +23,6 @@ public:
     using BinarySearchTree<Color, KeyType, ValueType>::clone_tree;
     using BinarySearchTree<Color, KeyType, ValueType>::left_rotate;
     using BinarySearchTree<Color, KeyType, ValueType>::right_rotate;
-    using BinarySearchTree<Color, KeyType, ValueType>::insert;
     using BinarySearchTree<Color, KeyType, ValueType>::tree_minimum;
     using BinarySearchTree<Color, KeyType, ValueType>::transplant;
     using BinarySearchTree<Color, KeyType, ValueType>::clear;
@@ -63,11 +62,10 @@ public:
    must point to pairs. */
 template<typename KeyType, typename ValueType>
 template<typename InputIterator>
-RedBlackTree<KeyType, ValueType>::RedBlackTree(InputIterator begin, InputIterator end) : RedBlackTree()
+RedBlackTree<KeyType, ValueType>::RedBlackTree(InputIterator begin, InputIterator end)
 {
-    while (begin != end)
-    {
-        BinarySearchTree<Color, KeyType, ValueType>::insert({begin->first, begin->second});
+    while (begin != end) {
+        insert({begin->first, begin->second});
         ++begin;
     }
 }
@@ -76,8 +74,7 @@ RedBlackTree<KeyType, ValueType>::RedBlackTree(InputIterator begin, InputIterato
 template<typename KeyType, typename ValueType>
 RedBlackTree<KeyType, ValueType>& RedBlackTree<KeyType, ValueType>::operator=(const RedBlackTree<KeyType, ValueType> &other)
 {
-    if (this != &other)
-    {
+    if (this != &other) {
         clear();
         root = clone_tree(other.root, nullptr);
         sz = other.sz;

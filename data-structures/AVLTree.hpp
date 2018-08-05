@@ -24,7 +24,6 @@ public:
     using BinarySearchTree<int, KeyType, ValueType>::tree_minimum;
     using BinarySearchTree<int, KeyType, ValueType>::transplant;
     using BinarySearchTree<int, KeyType, ValueType>::clear;
-    using BinarySearchTree<int, KeyType, ValueType>::inorder_print;  // testing function
 
 private:
     int height(TreeNode* node) noexcept { return node ? node->balance_info : -1; } // the AVL height of a node
@@ -41,8 +40,9 @@ public:
     : BinarySearchTree<int, KeyType, ValueType>::BinarySearchTree(other) { }   // copy constructor
     AVLTree(AVLTree<KeyType, ValueType>&& other) noexcept
     : BinarySearchTree<int, KeyType, ValueType>::BinarySearchTree(std::forward<AVLTree<KeyType, ValueType>>(other)) { }   // move constructor
-    template<typename InputIterator> AVLTree(InputIterator begin, InputIterator end);  // construct from iterator range
-    AVLTree(std::initializer_list<std::pair<KeyType, ValueType>> li) : AVLTree(li.begin(), li.end()) { }  // initializer list constructor
+    template<typename InputIterator> AVLTree(InputIterator begin, InputIterator end);    // construct from iterator range
+    AVLTree(std::initializer_list<std::pair<KeyType, ValueType>> li)
+    : AVLTree<KeyType, ValueType>::AVLTree(li.begin(), li.end()) { }  // initializer list constructor
     AVLTree<KeyType, ValueType>& operator=(const AVLTree<KeyType, ValueType>& other) = default;  // copy assignment
     AVLTree<KeyType, ValueType>& operator=(AVLTree<KeyType, ValueType>&& other) = default;     // move assignment
 
@@ -60,10 +60,9 @@ public:
    must point to pairs. */
 template<typename KeyType, typename ValueType>
 template<typename InputIterator>
-AVLTree<KeyType, ValueType>::AVLTree(InputIterator begin, InputIterator end) : AVLTree()
+AVLTree<KeyType, ValueType>::AVLTree(InputIterator begin, InputIterator end)
 {
-    while (begin != end)
-    {
+    while (begin != end) {
         insert({begin->first, begin->second});
         ++begin;
     }

@@ -1,5 +1,6 @@
 #include <cassert>
 #include <iostream>
+#include <map>
 #include <random>
 #include <set>
 #include <string>
@@ -21,7 +22,7 @@ AVLTree<int, int> func_that_copies_tree(AVLTree<int, int> tree)
 
 void copy_constructor_test()
 {
-    std::mt19937 mt(rd());
+    std::mt19937 mt{rd()};
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
@@ -47,7 +48,7 @@ void copy_constructor_test()
 
 void copy_assignment_test()
 {
-    std::mt19937 mt(rd());
+    std::mt19937 mt{rd()};
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
@@ -72,9 +73,35 @@ void copy_assignment_test()
     assert(orig_tree_string == copied_tree_string && "Copy assignment failed.\n");
 }
 
+void construct_from_iterator_range_test()
+{
+    std::mt19937 mt{rd()};
+    std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
+    std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
+
+    AVLTree<int, int> orig_tree;
+    for (int i = 0; i < num_insertions; ++i) {
+        orig_tree.insert({key_dist(mt), val_dist(mt)});
+    }
+
+    AVLTree<int, int> copied_tree(orig_tree.begin(), orig_tree.end());
+    std::string orig_tree_string {};
+    std::string copied_tree_string {};
+
+    for (const auto& x : orig_tree) {
+        orig_tree_string.append(std::to_string(x.first + x.second));
+    }
+
+    for (const auto& x : copied_tree) {
+        copied_tree_string.append(std::to_string(x.first + x.second));
+    }
+
+    assert(orig_tree_string == copied_tree_string && "Copy construction failed.\n");
+}
+
 void move_constructor_test()
 {
-    std::mt19937 mt(rd());
+    std::mt19937 mt{rd()};
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
@@ -100,7 +127,7 @@ void move_constructor_test()
 
 void move_assignment_test()
 {
-    std::mt19937 mt(rd());
+    std::mt19937 mt{rd()};
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
@@ -127,7 +154,7 @@ void move_assignment_test()
 
 void empty_clear_and_size_test()
 {
-    std::mt19937 mt(rd());
+    std::mt19937 mt{rd()};
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
@@ -148,7 +175,7 @@ void empty_clear_and_size_test()
 
 void insert_test()
 {
-    std::mt19937 mt(rd());
+    std::mt19937 mt{rd()};
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
@@ -238,7 +265,7 @@ void const_subscript_test()
 
 void erase_by_key_test()
 {
-    std::mt19937 mt(rd());
+    std::mt19937 mt{rd()};
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
@@ -278,7 +305,7 @@ void erase_by_key_test()
 
 bool either_is_odd(std::pair<int, int> keyvalue)
 {
-    return keyvalue.first % 2 == 1 || keyvalue.second % 2 == 1;
+    return std::abs(keyvalue.first % 2) == 1 || std::abs(keyvalue.second % 2) == 1;
 }
 
 bool both_are_even(std::pair<int, int> keyvalue)
@@ -288,33 +315,33 @@ bool both_are_even(std::pair<int, int> keyvalue)
 
 void erase_by_iter_test()
 {
-    std::mt19937 mt(rd());
+    std::mt19937 mt{rd()};
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
     AVLTree<int, int> tree {};
-    // TODO: fix this
-//    for (int i = 0; i < num_insertions; ++i) {
-//        tree.insert({key_dist(mt), val_dist(mt)});
-//    }
-//
-//    for (auto it = tree.begin(); it != tree.end(); ) {
-//        if (either_is_odd(*it)) {
-//            it = tree.erase(it);
-//        } else {
-//            ++it;
-//        }
-//    }
-//
-//    for (const auto& x : tree) {
-//        assert(both_are_even(x) && "Erase by iterator test failed.\n");
-//    }
+    for (int i = 0; i < 20; ++i) {
+        tree.insert({key_dist(mt), val_dist(mt)});
+    }
+
+    for (auto it = tree.begin(); it != tree.end(); ) {
+        if (either_is_odd(*it)) {
+            it = tree.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    for (const auto& x : tree) {
+        assert(both_are_even(x) && "Erase by iterator test failed.\n");
+    }
 }
 
 int main()
 {
     copy_constructor_test();
     copy_assignment_test();
+    construct_from_iterator_range_test();
     move_constructor_test();
     move_assignment_test();
     empty_clear_and_size_test();
