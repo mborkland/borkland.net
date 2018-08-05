@@ -22,7 +22,8 @@ public:
     using BinarySearchTree<int, KeyType, ValueType>::right_rotate;
     using BinarySearchTree<int, KeyType, ValueType>::insert;
     using BinarySearchTree<int, KeyType, ValueType>::tree_minimum;
-    using BinarySearchTree<int, KeyType, ValueType>::transplant;
+    using BinarySearchTree<int, KeyType, ValueType>::single_transplant;
+    using BinarySearchTree<int, KeyType, ValueType>::double_transplant;
     using BinarySearchTree<int, KeyType, ValueType>::clear;
 
 private:
@@ -78,8 +79,7 @@ void AVLTree<KeyType, ValueType>::update(TreeNode* node)
 template<typename KeyType, typename ValueType>
 void AVLTree<KeyType, ValueType>::rebalance_insert(TreeNode* node)
 {
-    while (node)
-    {
+    while (node) {
         if (rebalance(node))
             break;
         node = node->parent;
@@ -89,8 +89,7 @@ void AVLTree<KeyType, ValueType>::rebalance_insert(TreeNode* node)
 template<typename KeyType, typename ValueType>
 void AVLTree<KeyType, ValueType>::rebalance_delete(TreeNode* node)
 {
-    while (node)
-    {
+    while (node) {
         rebalance(node);
         node = node->parent;
     }
@@ -102,28 +101,18 @@ template<typename KeyType, typename ValueType>
 bool AVLTree<KeyType, ValueType>::rebalance(TreeNode* node)
 {
     update(node);
-    if (abs(height(node->left.get()) - height(node->right.get())) == 2)  // node needs rebalancing
-    {
-        if (height(node->left.get()) == height(node->right.get()) + 2)
-        {
-            if (height(node->left->left.get()) == height(node->right.get()) + 1)  // case 1
-            {
+    if (abs(height(node->left.get()) - height(node->right.get())) == 2) {  // node needs rebalancing
+        if (height(node->left.get()) == height(node->right.get()) + 2) {
+            if (height(node->left->left.get()) == height(node->right.get()) + 1) {  // case 1
                 right_rotate(node);
-            }
-            else    // case 2
-            {
+            } else {   // case 2
                 left_rotate(node->left.get());
                 right_rotate(node);
             }
-        }
-        else
-        {
-            if (height(node->right->right.get()) == height(node->left.get()) + 1)   // case 3
-            {
+        } else {
+            if (height(node->right->right.get()) == height(node->left.get()) + 1) {   // case 3
                 left_rotate(node);
-            }
-            else     // case 4
-            {
+            } else {    // case 4
                 right_rotate(node->right.get());
                 left_rotate(node);       
             }
@@ -140,48 +129,28 @@ template<typename KeyType, typename ValueType>
 void AVLTree<KeyType, ValueType>::delete_node(TreeNode* node)
 {
     --sz;
-    if (node == root.get() && !node->left && !node->right)  // only one node in the tree
-    {
+    if (node == root.get() && !node->left && !node->right) { // only one node in the tree
         clear();
         return;
     }
 
     auto node_to_rebalance = node->parent;  // the node where rebalancing will begin
-    if (!node->left)   // case 1: no children or only right child
-    {
-        transplant(node, node->right);
-    }
-    else if (!node->right)  // case 2: only left child
-    {
-        transplant(node, node->left);
-    }
-    else     // both children
-    {
+    if (!node->left) {  // case 1: no children or only right child
+        single_transplant(node, node->right);
+    } else if (!node->right) { // case 2: only left child
+        single_transplant(node, node->left);
+    } else {    // both children
         auto successor = tree_minimum(node->right.get());
-        if (successor->parent != node)  // case 3: node's successor lies within it's right child's left subtree
-        {
-            auto successor_child = std::move(successor->right);
-            auto successor_parent = successor->parent;
-            auto node_left_child = std::move(node->left);
-            auto node_right_child = std::move(node->right);
-            transplant(node, successor_parent->left);
-            successor->left = std::move(node_left_child);
-            successor->right = std::move(node_right_child);
-            successor->left->parent = successor;
-            successor->right->parent = successor;
-            successor_parent->left = std::move(successor_child);
-            if (successor_parent->left)
-                successor_parent->left->parent = successor_parent;
-            node_to_rebalance = successor_parent;
-        }
-        else   // case 4: node's right child is its successor
-        {
+        if (successor->parent != node) {  // case 3: node's successor lies within it's right child's left subtree
+            double_transplant(node, successor);
+        } else {  // case 4: node's right child is its successor
             auto temp_unique = std::move(node->left);
-            transplant(node, node->right);
+            single_transplant(node, node->right);
             successor->left = std::move(temp_unique);
             successor->left->parent = successor;
-            node_to_rebalance = successor;
         }
+
+        node_to_rebalance = successor;
     }
 
     rebalance_delete(node_to_rebalance);

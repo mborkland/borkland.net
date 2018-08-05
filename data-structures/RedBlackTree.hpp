@@ -2,6 +2,7 @@
 #define REDBLACKTREE_HPP
 
 #include "BinarySearchTree.hpp"
+#include <iostream>
 #include <utility>
 
 namespace bork_lib
@@ -12,11 +13,21 @@ enum class Color
     red, black
 };
 
+std::ostream& operator<<(std::ostream& os, const Color& color) {
+    if (color == Color::red) {
+        os << "R";
+    } else {
+        os << "B";
+    }
+
+    return os;
+}
+
 template<typename KeyType, typename ValueType>
 class RedBlackTree : public BinarySearchTree<Color, KeyType, ValueType>
 {
 public:
-    using TreeNode = typename BinarySearchTree<int, KeyType, ValueType>::TreeNode;
+    using TreeNode = typename BinarySearchTree<Color, KeyType, ValueType>::TreeNode;
     using node_iterator = NodeIterator<TreeNode, std::pair<const KeyType, ValueType>>;
     using BinarySearchTree<Color, KeyType, ValueType>::root;
     using BinarySearchTree<Color, KeyType, ValueType>::sz;
@@ -24,7 +35,8 @@ public:
     using BinarySearchTree<Color, KeyType, ValueType>::left_rotate;
     using BinarySearchTree<Color, KeyType, ValueType>::right_rotate;
     using BinarySearchTree<Color, KeyType, ValueType>::tree_minimum;
-    using BinarySearchTree<Color, KeyType, ValueType>::transplant;
+    using BinarySearchTree<Color, KeyType, ValueType>::single_transplant;
+    using BinarySearchTree<Color, KeyType, ValueType>::double_transplant;
     using BinarySearchTree<Color, KeyType, ValueType>::clear;
     using BinarySearchTree<Color, KeyType, ValueType>::inorder_print;  // testing function
 
@@ -48,7 +60,7 @@ public:
     RedBlackTree<KeyType, ValueType>& operator=(const RedBlackTree<KeyType, ValueType>& other);  // copy assignment
     RedBlackTree<KeyType, ValueType>& operator=(RedBlackTree<KeyType, ValueType>&& other) noexcept;     // move assignment
 
-    std::pair<node_iterator&, bool> insert(const std::pair<const KeyType, ValueType>& keyvalue);
+    auto insert(std::pair<const KeyType, ValueType>&& keyvalue);
 
     friend class TreeIterator<Color, KeyType, ValueType>;
     friend class ConstTreeIterator<Color, KeyType, ValueType>;
@@ -99,53 +111,41 @@ RedBlackTree<KeyType, ValueType>& RedBlackTree<KeyType, ValueType>::operator=(Re
 template<typename KeyType, typename ValueType>
 void RedBlackTree<KeyType, ValueType>::rebalance_insert(TreeNode* node)
 {
-    while (node->parent->balance_info == red)
-    {
+    while (node->parent->balance_info == Color::red) {
         auto grandparent = node->parent->parent;  // if node's parent is red, it must have a grandparent
-        if (node->parent == grandparent->left) // node's parent is the left child of its parent
-        {
-            auto uncle = grandparent->right;
-            if (uncle->balance_info == red)   // case 1: change both red siblings to black
-            {                                 // and grandparent to red
-                node->parent->balance_info = uncle->balance_info = black;
-                grandparent->balance_info = red;
+        if (node->parent == grandparent->left.get()) { // node's parent is the left child of its parent
+            auto uncle = grandparent->right.get();
+            if (uncle->balance_info == Color::red) {   // case 1: change both red siblings to black and grandparent to red
+                node->parent->balance_info = uncle->balance_info = Color::black;
+                grandparent->balance_info = Color::red;
                 node = grandparent;
-            }
-            else
-            {
-                if (node = node->parent->right)  // case 2: node's uncle is black and node is the right child of its parent
-                {
+            } else {
+                if (node == node->parent->right.get()) {  // case 2: node's uncle is black and node is the right child of its parent
                     node = node->parent;
-                    BinarySearchTree<Color, KeyType, ValueType>::left_rotate(node);
+                    left_rotate(node);
                 }
 
                 grandparent = node->parent->parent;
-                node->parent->balance_info = black;   // case 3: node's uncle is black and node is the left child of its parent
-                grandparent->balance_info = red;
-                BinarySearchTree<Color, KeyType, ValueType>::left_rotate(grandparent);
+                node->parent->balance_info = Color::black;   // case 3: node's uncle is black and node is the left child of its parent
+                grandparent->balance_info = Color::red;
+                right_rotate(grandparent);
             }
-        }
-        else                                  // node's parent is the right child of its parent
-        {
-            auto uncle = grandparent->left;
-            if (uncle->balance_info == red)   // case 1: change both red siblings to black
-            {                                 // and grandparent to red
-                node->parent->balance_info = uncle->balance_info = black;
-                grandparent->balance_info = red;
+        } else {                                 // node's parent is the right child of its parent
+            auto uncle = grandparent->left.get();
+            if (uncle->balance_info == Color::red) {   // case 1: change both red siblings to black and grandparent to red
+                node->parent->balance_info = uncle->balance_info = Color::black;
+                grandparent->balance_info = Color::red;
                 node = grandparent;
-            }
-            else
-            {
-                if (node = node->parent->left)  // case 2: node's uncle is black and node is the left child of its parent
-                {
+            } else {
+                if (node == node->parent->left.get()) {  // case 2: node's uncle is black and node is the left child of its parent
                     node = node->parent;
-                    BinarySearchTree<Color, KeyType, ValueType>::right_rotate(node);
+                    right_rotate(node);
                 }
 
                 grandparent = node->parent->parent;
-                node->parent->balance_info = black;   // case 3: node's uncle is black and node is the right child of its parent
-                grandparent->balance_info = red;
-                BinarySearchTree<Color, KeyType, ValueType>::right_rotate(grandparent);
+                node->parent->balance_info = Color::black;   // case 3: node's uncle is black and node is the right child of its parent
+                grandparent->balance_info = Color::red;
+                left_rotate(grandparent);
             }
         }
     }
@@ -154,28 +154,52 @@ void RedBlackTree<KeyType, ValueType>::rebalance_insert(TreeNode* node)
 template<typename KeyType, typename ValueType>
 void RedBlackTree<KeyType, ValueType>::rebalance_delete(TreeNode* node)
 {
-    
-}
+    // TODO: fix this!!!
+    while (node != root.get() && node->balance_info == Color::black) {
+        if (node == node->parent->left.get()) {
+            auto sibling = node->parent->right.get();
+            if (sibling->balance_info == Color::red) {  // case 1: node's sibling is red
+                sibling->balance_info == Color::black;
+                sibling->parent->balance_info = Color::red;
+                left_rotate(node->parent);
+                sibling = node->parent->right.get();
+            }
 
-/* Starts at a node and rebalances the tree at that node by performing
-   the necessary rotations. Repeats the process by traversing parent
-   links all the way up to the root. */
-template<typename KeyType, typename ValueType>
-void RedBlackTree<KeyType, ValueType>::rebalance(TreeNode* node)
-{
+            if (sibling->left->balance_info == Color::black && sibling->right->balance_info == Color::black) {
+                sibling->balance_info = Color::red;   // case 2: node's sibling is black, and both of the sibling's
+                node = node->parent;                  //         children are black
+            } else {         // node's sibling is black
+                if (sibling->right->balance_info == Color::black) {  // case 3: the sibling's left and right children
+                    sibling->left->balance_info = Color::black;      //         are red and black, respectively
+                    sibling->balance_info = Color::red;
+                    right_rotate(sibling);
+                    sibling = node->parent->right.get();
+                }
 
+                sibling->balance_info = node->parent->balance_info;
+                node->parent->balance_info = Color::black;
+                sibling->right->balance_info = Color::black;
+                left_rotate(node->parent);
+                node = root.get();
+            }
+        } else {
+
+        }
+
+        node->balance_info = Color::black;
+    }
 }
 
 /* Inserts a node in the tree with the given key-value pair. Redefinition of base class function.
    The default parameter for color in RBNode is red, since a new node is always red, except for
    when the first node of the tree is created. The root also needs to be updated to black after
    rebalancing, so this addition works in that case, as well. */
-template<typename NodeType, typename KeyType, typename ValueType>
-std::pair<NodeIterator<NodeType, std::pair<const KeyType, ValueType>>&, bool> BinarySearchTree<NodeType, KeyType, ValueType>::
-  insert(const std::pair<const KeyType, ValueType>& keyvalue)
+template<typename KeyType, typename ValueType>
+auto RedBlackTree<KeyType, ValueType>::insert(std::pair<const KeyType, ValueType>&& keyvalue)
 {
-    auto ret_val = BinarySearchTree<Color, KeyType, ValueType>::insert(keyvalue);
-    root->balance_info = black;
+    auto ret_val = BinarySearchTree<Color, KeyType, ValueType>::insert(
+            std::forward<std::pair<const KeyType, ValueType>>(keyvalue));
+    root->balance_info = Color::black;
     return ret_val;
 }
 
@@ -183,57 +207,42 @@ std::pair<NodeIterator<NodeType, std::pair<const KeyType, ValueType>>&, bool> Bi
 template<typename KeyType, typename ValueType>
 void RedBlackTree<KeyType, ValueType>::delete_node(TreeNode* node)
 {
-    // TODO: FIX THIS!!!!
     --sz;
-    if (node == root && !node->left && !node->right)  // only one node in the tree
-    {
-        delete node;
-        root = nullptr;
+    if (node == root && !node->left && !node->right) {  // only one node in the tree
+        clear();
         return;
     }
 
-    auto node_to_rebalance = node;  // node where rebalancing will begin
-    auto node_to_transplant = node;
-    Color original_color = node->balance_info;
-    if (!node->left)   // case 1: no children or only right child
-    {
-        BinarySearchTree<Color, KeyType, ValueType>::transplant(node, node->right);
-        node_to_rebalance = node->right ? node->right : node->parent;
-    }
-    else if (!node->right)  // case 2: only left child
-    {
-        BinarySearchTree<Color, KeyType, ValueType>::transplant(node, node->left);
-        node_to_rebalance = node->left;
-    }
-    else     // both children
-    {
-        node_to_transplant = tree_minimum(node->right);
-        original_color = node_to_transplant->balance_info;
-        node_to_rebalance = node_to_transplant->right;
-        if (node_to_transplant->parent == node)  // case 4: node's right child is its successor
-        {
-            node_to_rebalance->parent = node_to_transplant;
+    TreeNode* node_to_rebalance;  // node where rebalancing will begin
+    auto original_color = node->balance_info;
+    if (!node->left) {  // case 1: no children or only right child
+        node_to_rebalance = node->right.get();
+        single_transplant(node, node->right);
+    } else if (!node->right) {  // case 2: only left child
+        node_to_rebalance = node->left.get();
+        single_transplant(node, node->left);
+    } else {                  // both children
+        auto successor = tree_minimum(node->right.get());
+        original_color = successor->balance_info;
+        node_to_rebalance = successor->right ? successor->right.get() : successor->parent;
+
+        auto node_color = node->balance_info;
+        if (successor->parent != node) {  // case 3: node's successor lies within it's right child's left subtree
+            double_transplant(node, successor);
+        } else {  // case 4: node's right child is its successor
+            auto temp_unique = std::move(node->left);
+            single_transplant(node, node->right);
+            successor->left = std::move(temp_unique);
+            successor->left->parent = successor;
         }
 
-            BinarySearchTree<Color, KeyType, ValueType>::transplant(successor, successor->right);
-            BinarySearchTree<Color, KeyType, ValueType>::transplant(node, successor);
-            successor->right = node->right;
-            successor->left = node->left;
-            successor->right->parent = successor;
-            successor->left->parent = successor;
-            node_to_rebalance = tree_minimum(successor->right);
-        }
-        else   // case 3: node's successor lies within it's right child's left subtree
-        {
-            BinarySearchTree<Color, KeyType, ValueType>::transplant(node, successor);
-            successor->left = node->left;
-            successor->left->parent = successor;
-            node_to_rebalance = successor;
-        }
+        successor->balance_info = node_color;
     }
-    
-    delete node;
-    rebalance_delete(node_to_rebalance);
+
+    if (original_color == Color::black) {
+        rebalance_delete(node_to_rebalance);
+    }
+
 }
 
 }    // end namespace
