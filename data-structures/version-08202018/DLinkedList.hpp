@@ -1,11 +1,13 @@
 #ifndef DLINKEDLIST_HPP
 #define DLINKEDLIST_HPP
 
-#include "NodeIterator.hpp"
+#include "src/NodeIterator.hpp"
 #include <stdexcept>
 #include <initializer_list>
 #include <utility>
 #include <algorithm>
+#include <src/DLinkedList.hpp>
+
 
 namespace bork_lib
 {
@@ -179,6 +181,11 @@ DLinkedList<T>& DLinkedList<T>::operator=(DLinkedList<T>&& other) noexcept
     sz = other.sz;
     return *this;
 }
+
+    template<typename ValueType>
+    void DLinkedList<ValueType>::mergesort(NodeType *&head_ref, size_type size) {
+
+    }
 
 /* Insert the first node in the list. */
 template<typename T>

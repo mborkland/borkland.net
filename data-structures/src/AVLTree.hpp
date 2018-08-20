@@ -45,7 +45,7 @@ public:
     AVLTree(std::initializer_list<std::pair<KeyType, ValueType>> li)
     : AVLTree<KeyType, ValueType>::AVLTree(li.begin(), li.end()) { }  // initializer list constructor
     AVLTree<KeyType, ValueType>& operator=(const AVLTree<KeyType, ValueType>& other) = default;  // copy assignment
-    AVLTree<KeyType, ValueType>& operator=(AVLTree<KeyType, ValueType>&& other) = default;     // move assignment
+    AVLTree<KeyType, ValueType>& operator=(AVLTree<KeyType, ValueType>&& other) noexcept = default;     // move assignment
 
     inline int tree_height() const noexcept { return root ? root->balance_info : -1; }  // the height of the tree
 
