@@ -2,7 +2,6 @@
 #define LINKEDLIST_HPP
 
 #include <algorithm>
-#include <initializer_list>
 #include <memory>
 #include <type_traits>
 #include "NodeIterator.hpp"
@@ -78,9 +77,7 @@ public:
     // construction, assignment, and destruction
     LinkedList() = default;
     explicit LinkedList(size_type num_elements, const value_type& val = {});
-    template<typename InputIterator> LinkedList(InputIterator begin, InputIterator end);  // construct from iterator range
-    LinkedList(std::initializer_list<value_type> li) : LinkedList{li.begin(), li.end()} { }
-    LinkedList(const LinkedList<LinkageType, value_type>& other) : LinkedList{other.cbegin(), other.cend()}, srtd{other.srtd} { }
+    LinkedList(const LinkedList<LinkageType, value_type>& other) = delete;
     LinkedList(LinkedList<LinkageType, value_type>&& other) noexcept
      : head{std::move(other.head)}, tail{other.tail}, sz{other.sz}, srtd{other.srtd} { }
     LinkedList<LinkageType, ValueType>& operator=(const LinkedList<LinkageType, ValueType>& other);
@@ -111,15 +108,17 @@ public:
     virtual void pop_front() { delete_node(head.get()); }
     virtual void pop_back() { delete_node(tail); }
 
-    iterator find(const value_type& val);
-    size_type count(const value_type& val);
+    iterator find(const value_type& val) const;
+    size_type count(const value_type& val) const;
     void sort();
     node_iterator& erase(node_iterator& iter);
     void clear() noexcept;
 
     // iterator functions
     iterator begin() noexcept { return iterator{head.get()}; }
+    const_iterator begin() const noexcept { return const_iterator{head.get()}; }
     iterator end() noexcept { return iterator{nullptr}; }
+    const_iterator end() const noexcept { return const_iterator{nullptr}; };
     const_iterator cbegin() const noexcept { return const_iterator{head.get()}; }
     const_iterator cend()  const noexcept { return const_iterator{nullptr}; }
 
@@ -142,21 +141,13 @@ LinkedList<LinkageType, ValueType>::LinkedList(size_type num_elements, const val
 }
 
 template<typename LinkageType, typename ValueType>
-template<typename InputIterator>
-LinkedList<LinkageType, ValueType>::LinkedList(InputIterator begin, InputIterator end)
+LinkedList<LinkageType, ValueType>& LinkedList<LinkageType, ValueType>::operator=(const LinkedList<LinkageType, ValueType>& other)
 {
-    while (begin++ != end) {
-        push_back(*begin);
+    clear();
+    for (const auto& x : other) {
+        push_back(x);
     }
 
-    srtd = false;
-}
-
-template<typename LinkageType, typename ValueType>
-LinkedList<LinkageType, ValueType>& LinkedList<LinkageType, ValueType>::operator=(const LinkedList<LinkageType, ValueType> &other)
-{
-    auto temp = std::make_unique<LinkedList<LinkageType, ValueType>>(LinkedList<LinkageType, ValueType>{other.cbegin(), other.cend()});
-    list_swap(*this, *temp);
     return *this;
 }
 
@@ -259,7 +250,7 @@ void LinkedList<LinkageType, ValueType>::emplace_sorted(Args&&... args)
 }
 
 template<typename LinkageType, typename ValueType>
-typename LinkedList<LinkageType, ValueType>::iterator LinkedList<LinkageType, ValueType>::find(const value_type &val)
+typename LinkedList<LinkageType, ValueType>::iterator LinkedList<LinkageType, ValueType>::find(const value_type &val) const
 {
     auto node = head.get();
     while (node) {
@@ -273,7 +264,7 @@ typename LinkedList<LinkageType, ValueType>::iterator LinkedList<LinkageType, Va
 };
 
 template<typename LinkageType, typename ValueType>
-typename LinkedList<LinkageType, ValueType>::size_type LinkedList<LinkageType, ValueType>::count(const value_type& val)
+typename LinkedList<LinkageType, ValueType>::size_type LinkedList<LinkageType, ValueType>::count(const value_type& val) const
 {
     auto node = head.get();
     size_type count = 0;
@@ -294,8 +285,7 @@ void LinkedList<LinkageType, ValueType>::sort()
         return;
     }
 
-    auto head_node = head.get();
-    mergesort(head_node, sz);   // sort the entire list
+    mergesort(head, sz);   // sort the entire list
     srtd = true;
 }
 
@@ -315,6 +305,7 @@ void LinkedList<LinkageType, ValueType>::clear() noexcept
     }
 
     tail = nullptr;
+    sz = 0;
 }
 
 }   // end namespace

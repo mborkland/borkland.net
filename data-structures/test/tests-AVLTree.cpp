@@ -6,7 +6,8 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
-#include "src/AVLTree.hpp"
+#include "../../catch/catch.hpp"
+#include "../src/AVLTree.hpp"
 
 using bork_lib::AVLTree;
 

@@ -25,6 +25,8 @@ public:
     using const_iterator = typename LinkedList<DoubleLinkage, value_type>::const_iterator;
     using reverse_iterator = ReverseListIterator<value_type>;
     using const_reverse_iterator = ConstReverseListIterator<value_type>;
+    using LinkedList<DoubleLinkage, value_type>::empty;
+    using LinkedList<DoubleLinkage, value_type>::push_back;
 
 private:
     using node_iterator = typename LinkedList<DoubleLinkage, value_type>::node_iterator;
@@ -33,7 +35,6 @@ private:
     using LinkedList<DoubleLinkage, value_type>::srtd;
     using LinkedList<DoubleLinkage, value_type>::sz;
     using LinkedList<DoubleLinkage, value_type>::LinkedList;
-    using LinkedList<DoubleLinkage, value_type>::empty;
     using NodeType = typename LinkedList<DoubleLinkage, value_type>::NodeType;
 
 private:
@@ -46,17 +47,18 @@ private:
 public:
     DLinkedList() : LinkedList<DoubleLinkage, ValueType>{} { }
     explicit DLinkedList(size_type num_elements, const value_type& val = {}) : LinkedList<DoubleLinkage, ValueType>{num_elements, val} { }
-    DLinkedList(const DLinkedList<value_type>& other) : LinkedList<DoubleLinkage, ValueType>{other} { }
+    DLinkedList(const DLinkedList<value_type>& other) : DLinkedList(other.cbegin(), other.cend()) { srtd = other.srtd; }
     DLinkedList(DLinkedList<value_type>&& other) noexcept : LinkedList<DoubleLinkage, ValueType>{std::forward<DLinkedList<value_type>>(other)} { }
-    template<typename InputIterator>
-    DLinkedList(InputIterator begin, InputIterator end) : LinkedList<DoubleLinkage, ValueType>{begin, end} { }
-    DLinkedList(std::initializer_list<value_type> li) : LinkedList<DoubleLinkage, ValueType>{li} { }
+    template<typename InputIterator> DLinkedList(InputIterator begin, InputIterator end);
+    DLinkedList(std::initializer_list<value_type> li) : DLinkedList<ValueType>{li.begin(), li.end()} { }
     ~DLinkedList() = default;
-    DLinkedList<value_type>& operator=(const DLinkedList<value_type>& other) = default;
-    DLinkedList<value_type>& operator=(DLinkedList<value_type>&& other) noexcept = default;
+    DLinkedList& operator=(const DLinkedList<value_type>& other) = default;
+    DLinkedList& operator=(DLinkedList<value_type>&& other) noexcept = default;
 
     reverse_iterator rbegin() noexcept { return reverse_iterator{tail}; }
+    const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator{tail}; };
     reverse_iterator rend() noexcept { return reverse_iterator{nullptr}; }
+    const_reverse_iterator rend() const noexcept { return const_reverse_iterator{nullptr}; };
     const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator{tail}; }
     const_reverse_iterator crend() const noexcept { return const_reverse_iterator{nullptr}; }
 
@@ -66,6 +68,15 @@ public:
     friend class ConstReverseListIterator<value_type>;
     friend class NodeIterator<NodeType, value_type>;
 };
+
+template<typename ValueType>
+template<typename InputIterator>
+DLinkedList<ValueType>::DLinkedList(InputIterator begin, InputIterator end)
+{
+    while (begin != end) {
+        push_back(*begin++);
+    }
+}
 
 template<typename ValueType>
 void DLinkedList<ValueType>::emplace_before_node(NodeType* node, value_type&& val)
@@ -206,6 +217,8 @@ void DLinkedList<ValueType>::delete_node(NodeType* node)
         node->next->prev = node->prev;
         node->prev->next = std::move(node->next);
     }
+
+    --sz;
 }
 
 }  // end namespace
