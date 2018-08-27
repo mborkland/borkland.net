@@ -7,7 +7,7 @@
 
 using bork_lib::DLinkedList;
 
-std::random_device rd;
+std::random_device rd{};
 constexpr int max_value = 100000;
 constexpr int num_insertions = 50000;
 
@@ -40,6 +40,38 @@ TEST_CASE("Elements can be added to the end of a DLinkedList", "[DLinkedList]")
             dlist.push_back(i);
         }
         REQUIRE(std::is_sorted(dlist.begin(), dlist.end()));
+    }
+}
+
+TEST_CASE("Elements can be added to the beginning of a DLinkedList", "[DLinkedList]")
+{
+    constexpr int n = 11288;
+
+    SECTION("Elements can be pushed front without errors")
+    {
+        DLinkedList<int> dlist;
+        for (int i = 1; i <= n; ++i) {
+            REQUIRE_NOTHROW(dlist.push_front(i));
+        }
+    }
+
+    SECTION("The correct elements were added to the list")
+    {
+        DLinkedList<int> dlist;
+        for (int i = 1; i <= n; ++i) {
+            dlist.push_front(i);
+        }
+        int sum = std::accumulate(dlist.begin(), dlist.end(), 0);
+        REQUIRE(sum == (n*(n+1))/2);
+    }
+
+    SECTION("The elements exist in the list in the correct order")
+    {
+        DLinkedList<int> dlist;
+        for (int i = 1; i <= n; ++i) {
+            dlist.push_front(i);
+        }
+        REQUIRE(std::is_sorted(dlist.begin(), dlist.end(), [&](auto elem1, auto elem2){ return elem1 > elem2; }));
     }
 }
 
@@ -134,27 +166,6 @@ TEST_CASE("DLinkedList can be constructed from iterator range", "[DLinkedList]")
     }
 }
 
-/*TEST_CASE("DLinkedList constructed having n elements, all equal to k", "[DLinkedList]")
-{
-    constexpr int n = 11288;
-
-    SECTION("k value is specified")
-    {
-        constexpr int k = 12;
-        DLinkedList<int> dlist(n, k);
-        int sum = std::accumulate(dlist.begin(), dlist.end(), 0);
-        REQUIRE(sum == n*k);
-    }
-
-    SECTION("Default k value is used")
-    {
-        DLinkedList<int> dlist(n);
-        for (const auto& x : dlist) {
-            REQUIRE(x == 0);
-        }
-    }
-}*/
-
 TEST_CASE("DLinkedList empty function returns correct value", "[DLinkedList]")
 {
     SECTION("Default-constructed list is empty")
@@ -239,65 +250,382 @@ TEST_CASE("DLinkedList front and back functions allow access to the head and tai
     }
 }
 
-TEST_CASE("DLinkedList insert_before function works as expected")
+TEST_CASE("DLinkedList insert_before function works as expected", "[DLinkedList]")
+{
+    constexpr int magic_number = 42;
+
+    SECTION("Insert_before inserts correctly into an empty list")
+    {
+        DLinkedList<int> dlist;
+        auto it = dlist.begin();
+        REQUIRE_NOTHROW(dlist.insert_before(it, magic_number));
+        REQUIRE(dlist.size() == 1);
+        REQUIRE(dlist.front() == dlist.back());
+    }
+
+    SECTION("Insert_before inserts correctly into an non-empty list")
+    {
+        constexpr int n = 50;
+        REQUIRE(n % 2 == 0);
+        auto dlist = fill_list_with_consecutive_values(n);
+
+        for (auto it = dlist.begin(); it != dlist.end(); ++it) {
+            if (*it % 2 == 0) {
+                it = dlist.insert_before(it, magic_number);
+            }
+        }
+
+        for (auto it = dlist.begin(); it != dlist.end(); ++it) {
+            auto prev_it = it;
+            auto next_it = it;
+            --prev_it;
+            ++next_it;
+            if (*it == magic_number) {
+                continue;
+            } else if (*it % 2 == 0) {
+                REQUIRE(*prev_it == magic_number);
+            } else {
+                REQUIRE(*next_it == magic_number);
+            }
+        }
+    }
+}
+
+TEST_CASE("DLinkedList insert_after function works as expected", "[DLinkedList]")
+{
+    constexpr int magic_number = 42;
+
+    SECTION("Insert_after inserts correctly into an empty list")
+    {
+        DLinkedList<int> dlist;
+        auto it = dlist.begin();
+        REQUIRE_NOTHROW(dlist.insert_after(it, magic_number));
+        REQUIRE(dlist.size() == 1);
+        REQUIRE(dlist.front() == dlist.back());
+    }
+
+    SECTION("Insert_after inserts correctly into a non-empty list")
+    {
+        constexpr int n = 50;
+        REQUIRE(n % 2 == 0);
+        auto dlist = fill_list_with_consecutive_values(n);
+
+        for (auto it = dlist.begin(); it != dlist.end(); ++it) {
+            if (*it % 2 == 1) {
+                it = dlist.insert_after(it, magic_number);
+            }
+        }
+
+        for (auto it = dlist.begin(); it != dlist.end(); ++it) {
+            auto prev_it = it;
+            auto next_it = it;
+            --prev_it;
+            ++next_it;
+            if (*it == magic_number) {
+                continue;
+            } else if (*it % 2 == 0) {
+                REQUIRE(*prev_it == magic_number);
+            } else {
+                REQUIRE(*next_it == magic_number);
+            }
+        }
+    }
+}
+
+DLinkedList<int> fill_with_even_values(int n)
+{
+    DLinkedList<int> dlist;
+    for (int i = 0; i < n; i += 2) {
+        dlist.push_back(i);
+    }
+
+    return dlist;
+}
+
+TEST_CASE("DLinkedList insert_sorted function works as expected", "[DLinkedList]")
+{
+    constexpr int magic_number = 42;
+
+    SECTION("Insert_sorted inserts correctly into an empty list")
+    {
+        DLinkedList<int> dlist;
+        dlist.insert_sorted(magic_number);
+        REQUIRE(dlist.size() == 1);
+        REQUIRE(dlist.front() == dlist.back());
+    }
+
+    SECTION("Insert_sorted inserts correctly into a non-empty list")
+    {
+        constexpr int n = magic_number * 2;
+
+        SECTION("Insert_sorted inserts a unique value correctly")
+        {
+            auto dlist = fill_with_even_values(n);
+            dlist.insert_sorted(magic_number - 1);
+            REQUIRE(std::is_sorted(dlist.begin(), dlist.end()));
+            for (auto it = dlist.begin(); it != dlist.end(); ++it) {
+                if (*it == magic_number - 2) {
+                    auto next_it = it;
+                    ++next_it;
+                    REQUIRE(*next_it == magic_number - 1);
+                }
+
+                if (*it == magic_number) {
+                    auto prev_it = it;
+                    --prev_it;
+                    REQUIRE(*prev_it == magic_number - 1);
+                }
+            }
+        }
+
+        SECTION("Insert_sorted inserts a duplicate value correctly")
+        {
+            auto dlist = fill_with_even_values(n);
+            dlist.insert_sorted(magic_number);
+            REQUIRE(std::is_sorted(dlist.begin(), dlist.end()));
+            for (auto it = dlist.begin(); it != dlist.end(); ++it) {
+                if (*it == magic_number) {
+                    auto prev_it = it;
+                    auto next_it = it;
+                    --prev_it;
+                    ++next_it;
+                    if (*prev_it == magic_number - 2) {
+                        REQUIRE(*next_it == magic_number);
+                    } else {
+                        REQUIRE(*next_it == magic_number + 2);
+                    }
+                }
+            }
+        }
+    }
+}
+
+TEST_CASE("DLinkedList emplace_before function works as expected", "[DLinkedList]")
+{
+    SECTION("Emplace_before inserts correctly into an empty list")
+    {
+        using int_pair = std::pair<int, int>;
+        DLinkedList<int_pair> dlist;
+        auto it = dlist.begin();
+        it = dlist.emplace_before(it, 3, 4);
+        int_pair front_pair = dlist.front();
+        REQUIRE(front_pair.first == 3);
+        REQUIRE(front_pair.second == 4);
+    }
+
+    SECTION("Emplace_before inserts correctly into a non-empty list")
+    {
+        using int_pair = std::pair<int, int>;
+        DLinkedList<int_pair> dlist;
+        auto it = dlist.begin();
+        it = dlist.emplace_before(it, 3, 4);
+        dlist.emplace_before(it, 5, 6);
+        int_pair front_pair = dlist.front();
+        REQUIRE(front_pair.first == 5);
+        REQUIRE(front_pair.second == 6);
+    }
+}
+
+TEST_CASE("DLinkedList emplace_after function works as expected", "[DLinkedList]")
+{
+    SECTION("Emplace_after inserts correctly into an empty list")
+    {
+        using int_pair = std::pair<int, int>;
+        DLinkedList<int_pair> dlist;
+        auto it = dlist.begin();
+        it = dlist.emplace_after(it, 3, 4);
+        int_pair front_pair = dlist.front();
+        REQUIRE(front_pair.first == 3);
+        REQUIRE(front_pair.second == 4);
+    }
+
+    SECTION("Emplace_before inserts correctly into a non-empty list")
+    {
+        using int_pair = std::pair<int, int>;
+        DLinkedList<int_pair> dlist;
+        auto it = dlist.begin();
+        it = dlist.emplace_after(it, 3, 4);
+        dlist.emplace_after(it, 5, 6);
+        int_pair back_pair = dlist.back();
+        REQUIRE(back_pair.first == 5);
+        REQUIRE(back_pair.second == 6);
+    }
+}
+
+TEST_CASE("DLinkedList emplace_sorted function works as expected", "[DLinkedList]")
+{
+    SECTION("Emplace_sorted inserts correctly into an empty list")
+    {
+        using int_pair = std::pair<int, int>;
+        DLinkedList<int_pair> dlist;
+        dlist.emplace_sorted(3, 4);
+        int_pair front_pair = dlist.front();
+        REQUIRE(front_pair.first == 3);
+        REQUIRE(front_pair.second == 4);
+    }
+
+    SECTION("Emplace_sorted inserts correctly into a non-empty list")
+    {
+        using int_pair = std::pair<int, int>;
+        DLinkedList<int_pair> dlist;
+        dlist.emplace_sorted(3, 4);
+        dlist.emplace_sorted(5, 6);
+        int_pair back_pair = dlist.back();
+        REQUIRE(back_pair.first == 5);
+        REQUIRE(back_pair.second == 6);
+    }
+}
+
+TEST_CASE("DLinkedList pop_front function works as expected", "[DLinkedList]")
+{
+    SECTION("An exception is thrown when attempting to pop from an empty list")
+    {
+        DLinkedList<int> dlist;
+        REQUIRE_THROWS_WITH(dlist.pop_front(), Catch::Contains("delete") && Catch::Contains("null pointer"));
+    }
+
+    SECTION("Popping from an one-element list results in an empty list")
+    {
+        DLinkedList<int> dlist{2};
+        dlist.pop_front();
+        REQUIRE(dlist.empty());
+        REQUIRE(dlist.size() == 0);
+    }
+
+    SECTION("Popping from an multi-element list works as expected")
+    {
+        constexpr int n = 50;
+        auto dlist = fill_list_with_consecutive_values(n);
+        dlist.pop_front();
+        REQUIRE(dlist.size() == n - 1);
+        REQUIRE(dlist.front() == 2);
+    }
+}
+
+TEST_CASE("DLinkedList pop_back function works as expected", "[DLinkedList]")
+{
+    SECTION("An exception is thrown when attempting to pop from an empty list")
+    {
+        DLinkedList<int> dlist;
+        REQUIRE_THROWS_WITH(dlist.pop_back(), Catch::Contains("delete") && Catch::Contains("null pointer"));
+    }
+
+    SECTION("Popping from an one-element list results in an empty list")
+    {
+        DLinkedList<int> dlist{2};
+        dlist.pop_back();
+        REQUIRE(dlist.empty());
+        REQUIRE(dlist.size() == 0);
+    }
+
+    SECTION("Popping from an multi-element list works as expected")
+    {
+        constexpr int n = 50;
+        auto dlist = fill_list_with_consecutive_values(n);
+        dlist.pop_back();
+        REQUIRE(dlist.size() == n - 1);
+        REQUIRE(dlist.back() == n - 1);
+    }
+}
+
+TEST_CASE("DLinkedList find function works as expected", "[DLinkedList]")
+{
+    SECTION("An element that exists in the list is found")
+    {
+        constexpr int n = 50;
+        constexpr int magic_number = 42;
+        auto dlist = fill_list_with_consecutive_values(n);
+        auto it = dlist.find(magic_number);
+        REQUIRE(*it == magic_number);
+        ++it;
+        REQUIRE(*it == magic_number + 1);
+    }
+
+    SECTION("Searching for an element not in the list returns end iterator")
+    {
+        constexpr int n = 50;
+        constexpr int magic_number1 = -8;
+        constexpr int magic_number2 = 67;
+        auto dlist = fill_list_with_consecutive_values(50);
+        auto it1 = dlist.find(magic_number1);
+        auto it2 = dlist.find(magic_number2);
+        REQUIRE(it1 == dlist.end());
+        REQUIRE(it2 == dlist.end());
+    }
+}
+
+TEST_CASE("DLinkedList count function works as expected", "[DLinkedList]")
 {
     constexpr int n = 50;
     constexpr int magic_number = 42;
-    REQUIRE(n % 2 == 0);
-    auto dlist = fill_list_with_consecutive_values(n);
 
-    for (auto it = dlist.begin(); it != dlist.end(); ++it) {
-        if (*it % 2 == 0) {
-            it = dlist.insert_before(it, magic_number);
+    SECTION("The correct count is returned when the value is not in the list")
+    {
+        DLinkedList<int> dlist;
+        for (int i = 0; i < n; ++i) {
+            dlist.push_back(magic_number);
         }
+        auto num = dlist.count(magic_number  + 1);
+        REQUIRE(num == 0);
     }
 
-    for (auto it = dlist.begin(); it != dlist.end(); ++it) {
-        auto prev_it = it;
-        auto next_it = it;
-        --prev_it;
-        ++next_it;
-        if (*it == magic_number) {
-            continue;
-        } else if (*it % 2 == 0) {
-            REQUIRE(*prev_it == magic_number);
-        } else {
-            REQUIRE(*next_it == magic_number);
+    SECTION("The correct count is returned when the value is in the list")
+    {
+        DLinkedList<int> dlist;
+        for (int i = 0; i < n; ++i) {
+            dlist.push_back(magic_number);
         }
+        auto num = dlist.count(magic_number);
+        REQUIRE(num == n);
     }
 }
 
-TEST_CASE("DLinkedList insert_after function works as expected")
+TEST_CASE("DLinkedList erase function works as expected", "[DLinkedList]")
 {
-    constexpr int n = 50;
-    constexpr int magic_number = 42;
-    REQUIRE(n % 2 == 0);
-    auto dlist = fill_list_with_consecutive_values(n);
-
-    for (auto it = dlist.begin(); it != dlist.end(); ++it) {
-        if (*it % 2 == 1) {
-            it = dlist.insert_after(it, magic_number);
-        }
+    SECTION("Erasing from an empty list throws an exception")
+    {
+        DLinkedList<int> dlist;
+        auto it = dlist.begin();
+        REQUIRE_THROWS_WITH(dlist.erase(it), Catch::Contains("delete") && Catch::Contains("empty list"));
     }
 
-    for (auto it = dlist.begin(); it != dlist.end(); ++it) {
-        auto prev_it = it;
-        auto next_it = it;
-        --prev_it;
-        ++next_it;
-        if (*it == magic_number) {
-            continue;
-        } else if (*it % 2 == 0) {
-            REQUIRE(*prev_it == magic_number);
-        } else {
-            REQUIRE(*next_it == magic_number);
+    SECTION("Erasing from an one-element list results in an empty list")
+    {
+        DLinkedList<int> dlist{2};
+        auto it = dlist.begin();
+        it = dlist.erase(it);
+        REQUIRE(dlist.empty());
+        REQUIRE(dlist.size() == 0);
+        REQUIRE(it == dlist.end());
+    }
+
+    SECTION("Erasing from a multi-element list works correctly")
+    {
+        constexpr int n = 50;
+        auto dlist = fill_list_with_consecutive_values(n);
+        for (auto it = dlist.begin(); it != dlist.end(); ) {
+            if (*it % 2 == 0) {
+                it = dlist.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        for (const auto& x : dlist) {
+            REQUIRE(x % 2 == 1);
         }
     }
 }
 
-TEST_CASE("DLinkedList insert_sorted function works as expected")
+TEST_CASE("DLinkedList sort function works as expected")
 {
-
+    SECTION("A list of random values is sorted correctly")
+    {
+        auto dlist = fill_list_with_random_values();
+        REQUIRE_FALSE(std::is_sorted(dlist.begin(), dlist.end()));
+        dlist.sort();
+        REQUIRE(std::is_sorted(dlist.begin(), dlist.end()));
+    }
 }
 
-
+// TODO: reverse iterator tests

@@ -6,13 +6,14 @@
 #include <type_traits>
 #include "NodeIterator.hpp"
 
-namespace detail
-{
-
-}    // end namespace
-
 namespace bork_lib
 {
+
+template<typename, typename = void>
+struct can_be_dereferenced : std::false_type { };
+
+template<typename T>
+struct can_be_dereferenced<T, std::void_t<decltype(*std::declval<T>())>> : std::true_type { };
 
 class SingleLinkage {};
 class DoubleLinkage {};
@@ -61,7 +62,7 @@ protected:
     using NodeType = ListNode<LinkageType>;
     std::unique_ptr<NodeType> head = std::unique_ptr<NodeType>(nullptr);
     NodeType* tail = nullptr;
-    bool srtd = false;         // the list is guaranteed to be sorted if true
+    bool srtd = true;         // the list is guaranteed to be sorted if true
     size_type sz = 0;         // size of the list
     void list_swap(LinkedList<LinkageType, ValueType>& list1, LinkedList<LinkageType, ValueType>& list2);
     template<typename... Args> void emplace_empty(Args&&... args);
@@ -72,11 +73,13 @@ protected:
     virtual void merge(std::unique_ptr<NodeType>& left_owner, NodeType* right_raw, size_type right_size) = 0;
     virtual void delete_node(NodeType* node) = 0;
     NodeType* search_front(const value_type& val) const noexcept;
+    template<typename InputIterator> void construct_from_iterator_range(InputIterator begin, InputIterator end);
+    void construct_with_k_nodes(size_type num_elems, const value_type& val = {});
 
 public:
     // construction, assignment, and destruction
     LinkedList() = default;
-    explicit LinkedList(size_type num_elements, const value_type& val = {});
+    explicit LinkedList(size_type num_elements) { construct_with_k_nodes(num_elements); }
     LinkedList(const LinkedList<LinkageType, value_type>& other) = delete;
     LinkedList(LinkedList<LinkageType, value_type>&& other) noexcept
      : head{std::move(other.head)}, tail{other.tail}, sz{other.sz}, srtd{other.srtd} { }
@@ -110,9 +113,10 @@ public:
 
     iterator find(const value_type& val) const;
     size_type count(const value_type& val) const;
-    void sort();
     node_iterator& erase(node_iterator& iter);
     void clear() noexcept;
+
+    void sort();
 
     // iterator functions
     iterator begin() noexcept { return iterator{head.get()}; }
@@ -131,16 +135,6 @@ public:
 };
 
 template<typename LinkageType, typename ValueType>
-LinkedList<LinkageType, ValueType>::LinkedList(size_type num_elements, const value_type& val)
-{
-    for (size_type i = 0; i < num_elements; ++i) {
-        push_back(val);
-    }
-
-    srtd = true;
-}
-
-template<typename LinkageType, typename ValueType>
 LinkedList<LinkageType, ValueType>& LinkedList<LinkageType, ValueType>::operator=(const LinkedList<LinkageType, ValueType>& other)
 {
     clear();
@@ -148,6 +142,7 @@ LinkedList<LinkageType, ValueType>& LinkedList<LinkageType, ValueType>::operator
         push_back(x);
     }
 
+    srtd = other.srtd;
     return *this;
 }
 
@@ -208,6 +203,26 @@ typename LinkedList<LinkageType, ValueType>::NodeType* LinkedList<LinkageType, V
     return nullptr;
 }
 
+
+template<typename LinkageType, typename ValueType>
+template<typename InputIterator>
+void LinkedList<LinkageType, ValueType>::construct_from_iterator_range(InputIterator begin, InputIterator end)
+{
+    while (begin != end) {
+        push_back(*begin++);
+    }
+    srtd = std::is_sorted(begin, end);
+}
+
+template<typename LinkageType, typename ValueType>
+void LinkedList<LinkageType, ValueType>::construct_with_k_nodes(size_type num_elems, const value_type &val)
+{
+    for (size_type i = 0; i < num_elems; ++i) {
+        push_back(val);
+    }
+    srtd = true;
+}
+
 template<typename LinkageType, typename ValueType>
 template<typename... Args>
 typename LinkedList<LinkageType, ValueType>::node_iterator& LinkedList<LinkageType, ValueType>::emplace_before(node_iterator& iter, Args&&... args)
@@ -242,6 +257,7 @@ void LinkedList<LinkageType, ValueType>::emplace_sorted(Args&&... args)
 {
     if (empty()) {
         emplace_empty(std::forward<Args>(args)...);
+        return;
     }
 
     sort();    // won't sort if already sorted
@@ -289,11 +305,23 @@ void LinkedList<LinkageType, ValueType>::sort()
     srtd = true;
 }
 
+/*template<typename LinkageType, typename ValueType>
+template<typename ShadowedValueType, std::enable_if_t<!supports_less_than<ShadowedValueType>::value, ValueType>>
+void LinkedList<LinkageType, ValueType>::sort()
+{
+    throw std::logic_error("Sort function can only be called on comparable types.");
+}*/
+
 template<typename LinkageType, typename ValueType>
 typename LinkedList<LinkageType, ValueType>::node_iterator& LinkedList<LinkageType, ValueType>::erase(node_iterator& iter)
 {
+    if (empty()) {
+        throw std::out_of_range{"Can't delete from empty list."};
+    }
+
+    auto node = iter.node;
     ++iter;
-    delete_node(iter.node);
+    delete_node(node);
     return iter;
 }
 

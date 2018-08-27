@@ -109,6 +109,9 @@ template<typename ValueType>
 class ListIterator : public NodeIterator<typename LinkedList<DoubleLinkage, ValueType>::NodeType, ValueType>
 {
     using NodeType = typename LinkedList<DoubleLinkage, ValueType>::NodeType;
+    using NodeIterator<NodeType, ValueType>::NodeIterator;
+    using NodeIterator<NodeType, ValueType>::node;
+public:
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type = typename NodeIterator<NodeType, ValueType>::value_type;
     using reference = typename NodeIterator<NodeType, ValueType>::reference;
@@ -117,9 +120,7 @@ class ListIterator : public NodeIterator<typename LinkedList<DoubleLinkage, Valu
     using const_pointer = typename NodeIterator<NodeType, ValueType>::const_pointer;
     using size_type = typename NodeIterator<NodeType, ValueType>::size_type;
     using difference_type = typename NodeIterator<NodeType, ValueType>::difference_type;
-    using NodeIterator<NodeType, ValueType>::NodeIterator;
-    using NodeIterator<NodeType, ValueType>::node;
-public:
+
     ListIterator<ValueType>& operator=(const NodeIterator<NodeType, ValueType>& other)
     {
         return *this = dynamic_cast<ListIterator<ValueType>&>(NodeIterator<NodeType, ValueType>::operator=(other));
@@ -145,6 +146,9 @@ template<typename ValueType>
 class ConstListIterator : public ConstNodeIterator<typename LinkedList<DoubleLinkage, ValueType>::NodeType, ValueType>
 {
     using NodeType = typename LinkedList<DoubleLinkage, ValueType>::NodeType;
+    using ConstNodeIterator<NodeType, ValueType>::ConstNodeIterator;
+    using ConstNodeIterator<NodeType, ValueType>::node;
+public:
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type = typename ConstNodeIterator<NodeType, ValueType>::value_type;
     using reference = typename ConstNodeIterator<NodeType, ValueType>::reference;
@@ -153,9 +157,7 @@ class ConstListIterator : public ConstNodeIterator<typename LinkedList<DoubleLin
     using const_pointer = typename ConstNodeIterator<NodeType, ValueType>::const_pointer;
     using size_type = typename ConstNodeIterator<NodeType, ValueType>::size_type;
     using difference_type = typename ConstNodeIterator<NodeType, ValueType>::difference_type;
-    using ConstNodeIterator<NodeType, ValueType>::ConstNodeIterator;
-    using ConstNodeIterator<NodeType, ValueType>::node;
-public:
+
     ConstListIterator<ValueType>& operator=(const ConstNodeIterator<NodeType, ValueType>& other) = delete;
     virtual ConstListIterator<ValueType>& operator++() { node = node->next.get(); return *this; }
     virtual ConstListIterator<ValueType>& operator--() { node = node->prev; return *this; }
@@ -178,6 +180,9 @@ template<typename ValueType>
 class ReverseListIterator : public NodeIterator<typename LinkedList<DoubleLinkage, ValueType>::NodeType, ValueType>
 {
     using NodeType = typename LinkedList<DoubleLinkage, ValueType>::NodeType;
+    using NodeIterator<NodeType, ValueType>::NodeIterator;
+    using NodeIterator<NodeType, ValueType>::node;
+public:
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type = typename NodeIterator<NodeType, ValueType>::value_type;
     using reference = typename NodeIterator<NodeType, ValueType>::reference;
@@ -186,9 +191,7 @@ class ReverseListIterator : public NodeIterator<typename LinkedList<DoubleLinkag
     using const_pointer = typename NodeIterator<NodeType, ValueType>::const_pointer;
     using size_type = typename NodeIterator<NodeType, ValueType>::size_type;
     using difference_type = typename NodeIterator<NodeType, ValueType>::difference_type;
-    using NodeIterator<NodeType, ValueType>::NodeIterator;
-    using NodeIterator<NodeType, ValueType>::node;
-public:
+
     ReverseListIterator<ValueType>& operator=(const NodeIterator<NodeType, ValueType>& other)
     {
         return *this = dynamic_cast<ReverseListIterator<ValueType>&>(NodeIterator<NodeType, ValueType>::operator=(other));
@@ -214,6 +217,9 @@ template<typename ValueType>
 class ConstReverseListIterator : public ConstNodeIterator<typename LinkedList<DoubleLinkage, ValueType>::NodeType, ValueType>
 {
     using NodeType = typename LinkedList<DoubleLinkage, ValueType>::NodeType;
+    using ConstNodeIterator<NodeType, ValueType>::ConstNodeIterator;
+    using ConstNodeIterator<NodeType, ValueType>::node;
+public:
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type = typename ConstNodeIterator<NodeType, ValueType>::value_type;
     using reference = typename ConstNodeIterator<NodeType, ValueType>::reference;
@@ -222,9 +228,7 @@ class ConstReverseListIterator : public ConstNodeIterator<typename LinkedList<Do
     using const_pointer = typename ConstNodeIterator<NodeType, ValueType>::const_pointer;
     using size_type = typename ConstNodeIterator<NodeType, ValueType>::size_type;
     using difference_type = typename ConstNodeIterator<NodeType, ValueType>::difference_type;
-    using ConstNodeIterator<NodeType, ValueType>::ConstNodeIterator;
-    using ConstNodeIterator<NodeType, ValueType>::node;
-public:
+
     ConstReverseListIterator<ValueType>& operator=(const ConstNodeIterator<NodeType, ValueType>& other) = delete;
     virtual ConstReverseListIterator<ValueType>& operator++() { node = node->prev; return *this; }
     virtual ConstReverseListIterator<ValueType>& operator--() { node = node->next.get(); return *this; }
@@ -247,6 +251,9 @@ template<typename ValueType>
 class ForwardListIterator : public NodeIterator<typename LinkedList<SingleLinkage, ValueType>::NodeType, ValueType>
 {
     using NodeType = typename LinkedList<DoubleLinkage, ValueType>::NodeType;
+    using NodeIterator<NodeType, ValueType>::NodeIterator;
+    using NodeIterator<NodeType, ValueType>::node;
+public:
     using iterator_category = std::forward_iterator_tag;
     using value_type = typename NodeIterator<NodeType, ValueType>::value_type;
     using reference = typename NodeIterator<NodeType, ValueType>::reference;
@@ -255,9 +262,7 @@ class ForwardListIterator : public NodeIterator<typename LinkedList<SingleLinkag
     using const_pointer = typename NodeIterator<NodeType, ValueType>::const_pointer;
     using size_type = typename NodeIterator<NodeType, ValueType>::size_type;
     using difference_type = typename NodeIterator<NodeType, ValueType>::difference_type;
-    using NodeIterator<NodeType, ValueType>::NodeIterator;
-    using NodeIterator<NodeType, ValueType>::node;
-public:
+
     ForwardListIterator<ValueType>& operator=(const NodeIterator<NodeType, ValueType>& other)
     {
         return *this = dynamic_cast<ForwardListIterator<ValueType>&>(NodeIterator<NodeType, ValueType>::operator=(other));
@@ -278,6 +283,9 @@ template<typename ValueType>
 class ConstForwardListIterator : public ConstNodeIterator<typename LinkedList<SingleLinkage, ValueType>::NodeType, ValueType>
 {
     using NodeType = typename LinkedList<DoubleLinkage, ValueType>::NodeType;
+    using ConstNodeIterator<NodeType, ValueType>::ConstNodeIterator;
+    using ConstNodeIterator<NodeType, ValueType>::node;
+public:
     using iterator_category = std::forward_iterator_tag;
     using value_type = typename ConstNodeIterator<NodeType, ValueType>::value_type;
     using reference = typename ConstNodeIterator<NodeType, ValueType>::reference;
@@ -286,9 +294,7 @@ class ConstForwardListIterator : public ConstNodeIterator<typename LinkedList<Si
     using const_pointer = typename ConstNodeIterator<NodeType, ValueType>::const_pointer;
     using size_type = typename ConstNodeIterator<NodeType, ValueType>::size_type;
     using difference_type = typename ConstNodeIterator<NodeType, ValueType>::difference_type;
-    using ConstNodeIterator<NodeType, ValueType>::ConstNodeIterator;
-    using ConstNodeIterator<NodeType, ValueType>::node;
-public:
+
     ConstForwardListIterator<ValueType>& operator=(const ConstNodeIterator<NodeType, ValueType>& other) = delete;
     virtual ConstForwardListIterator<ValueType>& operator++() { node = node->next.get(); return *this; }
     virtual ConstForwardListIterator<ValueType>& operator--() { throw std::logic_error("Cannot decrement forward iterator."); }
