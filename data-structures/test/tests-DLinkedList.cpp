@@ -1,6 +1,5 @@
 #include <algorithm>
-#include <cassert>
-#include <iostream>
+#include <functional>
 #include <random>
 #include "../../catch/catch.hpp"
 #include "../src/DLinkedList.hpp"
@@ -625,7 +624,17 @@ TEST_CASE("DLinkedList sort function works as expected")
         REQUIRE_FALSE(std::is_sorted(dlist.begin(), dlist.end()));
         dlist.sort();
         REQUIRE(std::is_sorted(dlist.begin(), dlist.end()));
+        REQUIRE(std::is_sorted(dlist.rbegin(), dlist.rend(), [&](auto elem1, auto elem2){ return elem1 > elem2; }));
     }
 }
 
-// TODO: reverse iterator tests
+TEST_CASE("DLinkedList operations work correctly with reverse iterators", "[DLinkedList]")
+{
+    SECTION("Insert operations work correctly with reverse iterators", "[DLinkedList]")
+    {
+        SECTION("Insert_before works as expected with reverse iterators", "[DLinkedList]")
+        {
+
+        }
+    }
+}

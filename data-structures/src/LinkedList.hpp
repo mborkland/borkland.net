@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <memory>
 #include <type_traits>
+#include <utility>
 #include "NodeIterator.hpp"
 
 namespace bork_lib
@@ -65,13 +66,14 @@ protected:
     bool srtd = true;         // the list is guaranteed to be sorted if true
     size_type sz = 0;         // size of the list
     void list_swap(LinkedList<LinkageType, ValueType>& list1, LinkedList<LinkageType, ValueType>& list2);
+    void swap(value_type& a, value_type& b);
     template<typename... Args> void emplace_empty(Args&&... args);
     NodeType* find_sorted_position(const value_type& val);
-    virtual void emplace_before_node(NodeType* node, value_type&& val) = 0;
+    virtual NodeType* emplace_before_node(NodeType* node, value_type&& val) = 0;
     virtual void emplace_after_node(NodeType* node, value_type&& val) = 0;
-    virtual void mergesort(std::unique_ptr<NodeType>& left_owner, size_type size) = 0;
+    virtual void mergesort(std::unique_ptr<NodeType>& left_owner, size_type size);
     virtual void merge(std::unique_ptr<NodeType>& left_owner, NodeType* right_raw, size_type right_size) = 0;
-    virtual void delete_node(NodeType* node) = 0;
+    virtual NodeType* delete_node(NodeType* node) = 0;
     NodeType* search_front(const value_type& val) const noexcept;
     template<typename InputIterator> void construct_from_iterator_range(InputIterator begin, InputIterator end);
     void construct_with_k_nodes(size_type num_elems, const value_type& val = {});
@@ -79,7 +81,6 @@ protected:
 public:
     // construction, assignment, and destruction
     LinkedList() = default;
-    explicit LinkedList(size_type num_elements) { construct_with_k_nodes(num_elements); }
     LinkedList(const LinkedList<LinkageType, value_type>& other) = delete;
     LinkedList(LinkedList<LinkageType, value_type>&& other) noexcept
      : head{std::move(other.head)}, tail{other.tail}, sz{other.sz}, srtd{other.srtd} { }
@@ -105,7 +106,7 @@ public:
     template<typename... Args> void emplace_sorted(Args&&... args);
 
     void push_front(const value_type& val) { iterator iter{head.get()}; insert_before(iter, val); }
-    void push_front(value_type&& val) { iterator iter{head.get()}, insert_before(iter, std::forward<value_type>(val)); }
+    void push_front(value_type&& val) { iterator iter{head.get()}; insert_before(iter, std::forward<value_type>(val)); }
     void push_back(const value_type& val) { iterator iter{tail}; insert_after(iter, val); }
     void push_back(value_type&& val) { iterator iter{tail}; insert_after(iter, std::forward<value_type>(val)); }
     virtual void pop_front() { delete_node(head.get()); }
@@ -129,6 +130,8 @@ public:
 
     friend class ListIterator<value_type>;
     friend class ConstListIterator<value_type>;
+    friend class ReverseListIterator<value_type>;
+    friend class ConstReverseListIterator<value_type>;
     friend class ForwardListIterator<value_type>;
     friend class ConstForwardListIterator<value_type>;
     friend class NodeIterator<ListNode<LinkageType>, value_type>;
@@ -167,6 +170,14 @@ void LinkedList<LinkageType, ValueType>::list_swap(LinkedList<LinkageType, Value
 }
 
 template<typename LinkageType, typename ValueType>
+void LinkedList<LinkageType, ValueType>::swap(value_type& a, value_type& b)
+{
+    value_type tmp{std::move(a)};
+    a = std::move(b);
+    b = std::move(tmp);
+}
+
+template<typename LinkageType, typename ValueType>
 template<typename... Args>
 void LinkedList<LinkageType, ValueType>::emplace_empty(Args&&... args)
 {
@@ -187,6 +198,23 @@ typename LinkedList<LinkageType, ValueType>::NodeType* LinkedList<LinkageType, V
     }
 
     return nullptr;
+}
+
+template<typename LinkageType, typename ValueType>
+void LinkedList<LinkageType, ValueType>::mergesort(std::unique_ptr<NodeType>& left_owner, size_type size)
+{
+    if (size <= 1)  // already sorted
+        return;
+
+    size_type split = size / 2;
+    mergesort(left_owner, split);                // sort left half
+    auto node = left_owner.get();
+    for (size_type i = 0; i < split - 1; ++i) {   // split the list
+        node = node->next.get();
+    }
+    auto& right_owner = node->next;
+    mergesort(right_owner, size - split);        // sort right half
+    merge(left_owner, right_owner.get(), size - split);  // merge the two halves
 }
 
 template<typename LinkageType, typename ValueType>
@@ -215,15 +243,6 @@ void LinkedList<LinkageType, ValueType>::construct_from_iterator_range(InputIter
 }
 
 template<typename LinkageType, typename ValueType>
-void LinkedList<LinkageType, ValueType>::construct_with_k_nodes(size_type num_elems, const value_type &val)
-{
-    for (size_type i = 0; i < num_elems; ++i) {
-        push_back(val);
-    }
-    srtd = true;
-}
-
-template<typename LinkageType, typename ValueType>
 template<typename... Args>
 typename LinkedList<LinkageType, ValueType>::node_iterator& LinkedList<LinkageType, ValueType>::emplace_before(node_iterator& iter, Args&&... args)
 {
@@ -231,7 +250,7 @@ typename LinkedList<LinkageType, ValueType>::node_iterator& LinkedList<LinkageTy
         emplace_empty(std::forward<Args>(args)...);
         iter.node = head.get();
     } else {
-        emplace_before_node(iter.node, value_type{args...});
+        iter.node = emplace_before_node(iter.node, value_type{args...});
     }
 
     return iter;
@@ -262,7 +281,11 @@ void LinkedList<LinkageType, ValueType>::emplace_sorted(Args&&... args)
 
     sort();    // won't sort if already sorted
     auto position = find_sorted_position(value_type{args...});
-    position ? emplace_before_node(position, value_type{args...}) : emplace_after_node(tail, value_type{args...});
+    if (position) {
+        emplace_before_node(position, value_type{args...});
+    } else {
+        emplace_after_node(tail, value_type{args...});
+    }
 }
 
 template<typename LinkageType, typename ValueType>
@@ -319,9 +342,7 @@ typename LinkedList<LinkageType, ValueType>::node_iterator& LinkedList<LinkageTy
         throw std::out_of_range{"Can't delete from empty list."};
     }
 
-    auto node = iter.node;
-    ++iter;
-    delete_node(node);
+    iter.node = delete_node(iter.node);
     return iter;
 }
 

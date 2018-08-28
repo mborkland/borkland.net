@@ -1,12 +1,13 @@
 #ifndef DLINKEDLIST_HPP
 #define DLINKEDLIST_HPP
 
-#include "LinkedList.hpp"
-#include "NodeIterator.hpp"
 #include <algorithm>
+#include <initializer_list>
 #include <memory>
 #include <stdexcept>
 #include <utility>
+#include "LinkedList.hpp"
+#include "NodeIterator.hpp"
 
 namespace bork_lib
 {
@@ -26,33 +27,29 @@ public:
     using const_iterator = typename LinkedList<DoubleLinkage, value_type>::const_iterator;
     using reverse_iterator = ReverseListIterator<value_type>;
     using const_reverse_iterator = ConstReverseListIterator<value_type>;
-    using LinkedList<DoubleLinkage, value_type>::empty;
     using LinkedList<DoubleLinkage, value_type>::push_back;
-    using LinkedList<DoubleLinkage, value_type>::construct_from_iterator_range;
-    using LinkedList<DoubleLinkage, value_type>::construct_with_k_nodes;
 
 private:
     using node_iterator = typename LinkedList<DoubleLinkage, value_type>::node_iterator;
+    using NodeType = typename LinkedList<DoubleLinkage, value_type>::NodeType;
     using LinkedList<DoubleLinkage, value_type>::head;
     using LinkedList<DoubleLinkage, value_type>::tail;
     using LinkedList<DoubleLinkage, value_type>::srtd;
     using LinkedList<DoubleLinkage, value_type>::sz;
     using LinkedList<DoubleLinkage, value_type>::LinkedList;
-    using NodeType = typename LinkedList<DoubleLinkage, value_type>::NodeType;
+    using LinkedList<DoubleLinkage, value_type>::construct_from_iterator_range;
 
-private:
-    void emplace_before_node(NodeType* node, value_type&& val) override;
+    NodeType* emplace_before_node(NodeType* node, value_type&& val) override;
     void emplace_after_node(NodeType* node, value_type&& val) override;
-    void mergesort(std::unique_ptr<NodeType>& left_owner, size_type size) override;
     void merge(std::unique_ptr<NodeType>& left_owner, NodeType* right_raw, size_type right_size) override;
-    void delete_node(NodeType* node) override;
+    NodeType* delete_node(NodeType* node) override;
 
 public:
-    DLinkedList() : LinkedList<DoubleLinkage, ValueType>{} { }
-    DLinkedList(const DLinkedList<value_type>& other) : DLinkedList(other.cbegin(), other.cend()) { srtd = other.srtd; }
-    DLinkedList(DLinkedList<value_type>&& other) noexcept : LinkedList<DoubleLinkage, ValueType>{std::forward<DLinkedList<value_type>>(other)} { }
+    DLinkedList() : LinkedList<DoubleLinkage, value_type>{} { }
+    DLinkedList(const DLinkedList<value_type>& other) : DLinkedList{other.cbegin(), other.cend()} { srtd = other.srtd; }
+    DLinkedList(DLinkedList<value_type>&& other) noexcept : LinkedList<DoubleLinkage, value_type>{std::forward<DLinkedList<value_type>>(other)} { }
     template<typename InputIterator> DLinkedList(InputIterator begin, InputIterator end);
-    DLinkedList(std::initializer_list<value_type> li) : DLinkedList<ValueType>{li.begin(), li.end()} { }
+    DLinkedList(std::initializer_list<value_type> li) : DLinkedList<value_type>{li.begin(), li.end()} { }
     ~DLinkedList() = default;
     DLinkedList& operator=(const DLinkedList<value_type>& other) = default;
     DLinkedList& operator=(DLinkedList<value_type>&& other) noexcept = default;
@@ -79,7 +76,7 @@ DLinkedList<ValueType>::DLinkedList(InputIterator begin, InputIterator end)
 }
 
 template<typename ValueType>
-void DLinkedList<ValueType>::emplace_before_node(NodeType* node, value_type&& val)
+typename DLinkedList<ValueType>::NodeType* DLinkedList<ValueType>::emplace_before_node(NodeType* node, value_type&& val)
 {
     if (!node) {
         throw std::invalid_argument{"Non-empty list pointer can't be null."};
@@ -98,6 +95,8 @@ void DLinkedList<ValueType>::emplace_before_node(NodeType* node, value_type&& va
         new_node->next = std::move(new_node->prev->next);
         new_node->prev->next = std::move(new_node);
     }
+
+    return node;
 }
 
 template<typename ValueType>
@@ -120,57 +119,24 @@ void DLinkedList<ValueType>::emplace_after_node(NodeType* node, value_type&& val
 }
 
 template<typename ValueType>
-void DLinkedList<ValueType>::mergesort(std::unique_ptr<NodeType>& left_owner, size_type size)
-{
-    if (size <= 1)  // already sorted
-        return;
-
-    auto node = left_owner.get();
-    size_type split = size / 2;
-    for (size_type i = 0; i < split - 1; ++i) {   // split the list
-        node = node->next.get();
-    }
-    
-    auto right_raw = node->next.get();
-    mergesort(left_owner, split);                // sort left half
-    auto& right_owner = right_raw->prev->next;
-    mergesort(right_owner, size - split);        // sort right half
-    merge(left_owner, right_owner.get(), size - split);  // merge the two halves
-}
-
-template<typename ValueType>
 void DLinkedList<ValueType>::merge(std::unique_ptr<NodeType>& left_owner, NodeType* right_raw, size_type right_size)
 {
-    if (!left_owner || !right_raw) {
-        return;
-    }
-
     auto left_raw = left_owner.get();
 
     /* Explanation of the following while loop conditions:
-       1. right_size keeps track of the number of unmerged nodes
-          in the right sublist. When right_size == 0, the last node
-          to be merged was in the right sublist and the sublists
-          have been merged.
-       2. If left_owner == right_owner, then all the nodes in the
-          left sublist have been merged. Since the right sublist is
-          already sorted, the merging is now complete. */
+       1. right_size keeps track of the number of unmerged nodes in the right sublist. When right_size == 0,
+          the last node to be merged was in the right sublist and the sublists have been merged.
+       2. If left_raw == right_raw, then all the nodes in the left sublist have been merged. Since the right sublist
+          is already sorted, the merging is now complete. */
     while(right_size && left_raw != right_raw)
     {
-        /*print_sublist(left_owner.get(), initial_right_size);
-        std::cout << "left_owner = " << left_owner->data << '\n';
-        std::cout << "left_raw = " << left_raw->data << '\n';
-        std::cout << "right_raw = " << right_raw->data << '\n';*/
-        /* When the next node to be merged is from the
-        left sublist, simply move the left_owner pointer
+        /* When the next node to be merged is from the left sublist, simply move the left_raw pointer
         to the next node. */
         if (left_raw->data <= right_raw->data) {
             left_raw = left_raw->next.get();
         }
-
-            /* When the next node to be merged is from the
-            right sublist, put that node in front of the
-            node pointed to by left_owner. */
+        /* When the next node to be merged is from the right sublist, put that node in front of the
+        node pointed to by left_raw. */
         else {
             --right_size;
             auto current = std::move(right_raw->prev->next);          // the node currently being moved
@@ -200,12 +166,13 @@ void DLinkedList<ValueType>::merge(std::unique_ptr<NodeType>& left_owner, NodeTy
 }
 
 template<typename ValueType>
-void DLinkedList<ValueType>::delete_node(NodeType* node)
+typename DLinkedList<ValueType>::NodeType* DLinkedList<ValueType>::delete_node(NodeType* node)
 {
     if (!node) {
         throw std::invalid_argument{"Can't delete null pointer."};
     }
 
+    auto return_node = node->next.get();
     if (sz == 1) {
         head.release();
         tail = nullptr;
@@ -220,6 +187,7 @@ void DLinkedList<ValueType>::delete_node(NodeType* node)
     }
 
     --sz;
+    return return_node;
 }
 
 }  // end namespace
