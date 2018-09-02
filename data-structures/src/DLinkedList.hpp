@@ -31,7 +31,7 @@ public:
 
 private:
     using node_iterator = typename LinkedList<DoubleLinkage, value_type>::node_iterator;
-    using NodeType = typename LinkedList<DoubleLinkage, value_type>::NodeType;
+    using node_type = typename LinkedList<DoubleLinkage, value_type>::node_type;
     using LinkedList<DoubleLinkage, value_type>::head;
     using LinkedList<DoubleLinkage, value_type>::tail;
     using LinkedList<DoubleLinkage, value_type>::srtd;
@@ -39,10 +39,16 @@ private:
     using LinkedList<DoubleLinkage, value_type>::LinkedList;
     using LinkedList<DoubleLinkage, value_type>::construct_from_iterator_range;
 
-    NodeType* emplace_before_node(NodeType* node, value_type&& val) override;
-    void emplace_after_node(NodeType* node, value_type&& val) override;
-    void merge(std::unique_ptr<NodeType>& left_owner, NodeType* right_raw, size_type right_size) override;
-    NodeType* delete_node(NodeType* node) override;
+    node_type* emplace_before_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse) override;
+    node_type* emplace_after_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse) override;
+
+    void merge(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size) override;
+    template<typename T = value_type, std::enable_if_t<supports_less_than<T>::value, int> = 0>
+    void merge_helper(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size);
+    template<typename T = value_type, std::enable_if_t<!supports_less_than<T>::value, int> = 0>
+    void merge_helper(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size) { }
+
+    node_type* delete_node(node_type* node, bool is_reverse) override;
 
 public:
     DLinkedList() : LinkedList<DoubleLinkage, value_type>{} { }
@@ -65,7 +71,7 @@ public:
     friend class ConstListIterator<value_type>;
     friend class ReverseListIterator<value_type>;
     friend class ConstReverseListIterator<value_type>;
-    friend class NodeIterator<NodeType, value_type>;
+    friend class NodeIterator<node_type, value_type>;
 };
 
 template<typename ValueType>
@@ -76,18 +82,20 @@ DLinkedList<ValueType>::DLinkedList(InputIterator begin, InputIterator end)
 }
 
 template<typename ValueType>
-typename DLinkedList<ValueType>::NodeType* DLinkedList<ValueType>::emplace_before_node(NodeType* node, value_type&& val)
+typename DLinkedList<ValueType>::node_type* DLinkedList<ValueType>::emplace_before_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse)
 {
     if (!node) {
         throw std::invalid_argument{"Non-empty list pointer can't be null."};
     }
 
+    if (is_reverse) {
+        return emplace_after_node(node, new_node, false)->prev;
+    }
+
     ++sz;
     srtd = false;
-    auto new_node = std::make_unique<NodeType>(std::forward<value_type>(val));
     new_node->prev = node->prev;
     node->prev = new_node.get();
-
     if (node == head.get()) {    // insert at front of list
         new_node->next = std::move(head);
         head = std::move(new_node);
@@ -100,26 +108,38 @@ typename DLinkedList<ValueType>::NodeType* DLinkedList<ValueType>::emplace_befor
 }
 
 template<typename ValueType>
-void DLinkedList<ValueType>::emplace_after_node(NodeType* node, value_type&& val)
+typename DLinkedList<ValueType>::node_type* DLinkedList<ValueType>::emplace_after_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse)
 {
     if (!node) {
         throw std::invalid_argument{"Non-empty list pointer can't be null."};
     }
 
+    if (is_reverse) {
+        return emplace_before_node(node, new_node, false)->prev;
+    }
+
     ++sz;
     srtd = false;
-    auto new_node = std::make_unique<NodeType>(std::forward<value_type>(val), std::move(node->next), node);
-
+    new_node->next = std::move(node->next);
+    new_node->prev = node;
     if (node == tail) {   // insert at back of list
         tail = new_node.get();
     } else {
         new_node->next->prev = new_node.get();
     }
     node->next = std::move(new_node);
+    return node->next.get();
 }
 
 template<typename ValueType>
-void DLinkedList<ValueType>::merge(std::unique_ptr<NodeType>& left_owner, NodeType* right_raw, size_type right_size)
+void DLinkedList<ValueType>::merge(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size)
+{
+    merge_helper(left_owner, right_raw, right_size);
+}
+
+template<typename ValueType>
+template<typename T, std::enable_if_t<supports_less_than<T>::value, int>>
+void DLinkedList<ValueType>::merge_helper(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size)
 {
     auto left_raw = left_owner.get();
 
@@ -166,13 +186,13 @@ void DLinkedList<ValueType>::merge(std::unique_ptr<NodeType>& left_owner, NodeTy
 }
 
 template<typename ValueType>
-typename DLinkedList<ValueType>::NodeType* DLinkedList<ValueType>::delete_node(NodeType* node)
+typename DLinkedList<ValueType>::node_type* DLinkedList<ValueType>::delete_node(node_type* node, bool is_reverse)
 {
     if (!node) {
         throw std::invalid_argument{"Can't delete null pointer."};
     }
 
-    auto return_node = node->next.get();
+    auto return_node = is_reverse ? node->prev : node->next.get();
     if (sz == 1) {
         head.release();
         tail = nullptr;

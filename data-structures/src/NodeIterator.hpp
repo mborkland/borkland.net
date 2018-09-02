@@ -21,6 +21,7 @@ class NodeIterator
 {
 protected:
     NodeType* node;
+    virtual bool is_reverse() = 0;
 
 public:
     using value_type = ValueType;
@@ -66,6 +67,7 @@ class ConstNodeIterator
 {
 protected:
     NodeType* node;
+    virtual bool is_reverse() = 0;
 
 public:
     using value_type = ValueType;
@@ -106,34 +108,35 @@ public:
 };
 
 template<typename ValueType>
-class ListIterator : public NodeIterator<typename LinkedList<DoubleLinkage, ValueType>::NodeType, ValueType>
+class ListIterator : public NodeIterator<typename LinkedList<DoubleLinkage, ValueType>::node_type, ValueType>
 {
-    using NodeType = typename LinkedList<DoubleLinkage, ValueType>::NodeType;
-    using NodeIterator<NodeType, ValueType>::NodeIterator;
-    using NodeIterator<NodeType, ValueType>::node;
+    bool is_reverse() override { return false; }
+    using node_type = typename LinkedList<DoubleLinkage, ValueType>::node_type;
+    using NodeIterator<node_type, ValueType>::NodeIterator;
+    using NodeIterator<node_type, ValueType>::node;
 public:
     using iterator_category = std::bidirectional_iterator_tag;
-    using value_type = typename NodeIterator<NodeType, ValueType>::value_type;
-    using reference = typename NodeIterator<NodeType, value_type>::reference;
-    using const_reference = typename NodeIterator<NodeType, value_type>::const_reference;
-    using pointer = typename NodeIterator<NodeType, value_type>::pointer;
-    using const_pointer = typename NodeIterator<NodeType, value_type>::const_pointer;
-    using size_type = typename NodeIterator<NodeType, value_type>::size_type;
-    using difference_type = typename NodeIterator<NodeType, value_type>::difference_type;
+    using value_type = typename NodeIterator<node_type, ValueType>::value_type;
+    using reference = typename NodeIterator<node_type, value_type>::reference;
+    using const_reference = typename NodeIterator<node_type, value_type>::const_reference;
+    using pointer = typename NodeIterator<node_type, value_type>::pointer;
+    using const_pointer = typename NodeIterator<node_type, value_type>::const_pointer;
+    using size_type = typename NodeIterator<node_type, value_type>::size_type;
+    using difference_type = typename NodeIterator<node_type, value_type>::difference_type;
 
-    ListIterator<value_type>& operator=(const NodeIterator<NodeType, value_type>& other)
+    ListIterator<value_type>& operator=(const NodeIterator<node_type, value_type>& other)
     {
-        return *this = dynamic_cast<ListIterator<value_type>&>(NodeIterator<NodeType, value_type>::operator=(other));
+        return *this = dynamic_cast<ListIterator<value_type>&>(NodeIterator<node_type, value_type>::operator=(other));
     }
     ListIterator<value_type>& operator++() override { node = node->next.get(); return *this; }
     ListIterator<value_type>& operator--() override { node = node->prev; return *this; }
-    virtual ListIterator<value_type> operator++(int)
+    ListIterator<value_type> operator++(int)
     {
         ListIterator<value_type> temp{*this};
         operator++();
         return temp;
     }
-    virtual ListIterator<value_type> operator--(int)
+    ListIterator<value_type> operator--(int)
     {
         ListIterator<value_type> temp{*this};
         operator--();
@@ -143,34 +146,35 @@ public:
 };
 
 template<typename ValueType>
-class ConstListIterator : public ConstNodeIterator<typename LinkedList<DoubleLinkage, ValueType>::NodeType, ValueType>
+class ConstListIterator : public ConstNodeIterator<typename LinkedList<DoubleLinkage, ValueType>::node_type, ValueType>
 {
-    using NodeType = typename LinkedList<DoubleLinkage, ValueType>::NodeType;
-    using ConstNodeIterator<NodeType, ValueType>::ConstNodeIterator;
-    using ConstNodeIterator<NodeType, ValueType>::node;
+    bool is_reverse() override { return false; }
+    using node_type = typename LinkedList<DoubleLinkage, ValueType>::node_type;
+    using ConstNodeIterator<node_type, ValueType>::ConstNodeIterator;
+    using ConstNodeIterator<node_type, ValueType>::node;
 public:
     using iterator_category = std::bidirectional_iterator_tag;
-    using value_type = typename ConstNodeIterator<NodeType, ValueType>::value_type;
-    using reference = typename ConstNodeIterator<NodeType, value_type>::reference;
-    using const_reference = typename ConstNodeIterator<NodeType, value_type>::const_reference;
-    using pointer = typename ConstNodeIterator<NodeType, value_type>::pointer;
-    using const_pointer = typename ConstNodeIterator<NodeType, value_type>::const_pointer;
-    using size_type = typename ConstNodeIterator<NodeType, value_type>::size_type;
-    using difference_type = typename ConstNodeIterator<NodeType, value_type>::difference_type;
+    using value_type = typename ConstNodeIterator<node_type, ValueType>::value_type;
+    using reference = typename ConstNodeIterator<node_type, value_type>::reference;
+    using const_reference = typename ConstNodeIterator<node_type, value_type>::const_reference;
+    using pointer = typename ConstNodeIterator<node_type, value_type>::pointer;
+    using const_pointer = typename ConstNodeIterator<node_type, value_type>::const_pointer;
+    using size_type = typename ConstNodeIterator<node_type, value_type>::size_type;
+    using difference_type = typename ConstNodeIterator<node_type, value_type>::difference_type;
 
-    ConstListIterator<value_type>& operator=(const ConstNodeIterator<NodeType, value_type>& other)
+    ConstListIterator<value_type>& operator=(const ConstNodeIterator<node_type, value_type>& other)
     {
-        return *this = dynamic_cast<ConstListIterator<value_type>&>(ConstNodeIterator<NodeType, value_type>::operator=(other));
+        return *this = dynamic_cast<ConstListIterator<value_type>&>(ConstNodeIterator<node_type, value_type>::operator=(other));
     }
-    virtual ConstListIterator<value_type>& operator++() { node = node->next.get(); return *this; }
-    virtual ConstListIterator<value_type>& operator--() { node = node->prev; return *this; }
-    virtual ConstListIterator<value_type> operator++(int)
+    ConstListIterator<value_type>& operator++() override { node = node->next.get(); return *this; }
+    ConstListIterator<value_type>& operator--() override { node = node->prev; return *this; }
+    ConstListIterator<value_type> operator++(int)
     {
         ConstListIterator<value_type> temp{*this};
         operator++();
         return temp;
     }
-    virtual ConstListIterator<value_type> operator--(int)
+    ConstListIterator<value_type> operator--(int)
     {
         ConstListIterator<value_type> temp{*this};
         operator--();
@@ -180,34 +184,35 @@ public:
 };
 
 template<typename ValueType>
-class ReverseListIterator : public NodeIterator<typename LinkedList<DoubleLinkage, ValueType>::NodeType, ValueType>
+class ReverseListIterator : public NodeIterator<typename LinkedList<DoubleLinkage, ValueType>::node_type, ValueType>
 {
-    using NodeType = typename LinkedList<DoubleLinkage, ValueType>::NodeType;
-    using NodeIterator<NodeType, ValueType>::NodeIterator;
-    using NodeIterator<NodeType, ValueType>::node;
+    bool is_reverse() override { return true; }
+    using node_type = typename LinkedList<DoubleLinkage, ValueType>::node_type;
+    using NodeIterator<node_type, ValueType>::NodeIterator;
+    using NodeIterator<node_type, ValueType>::node;
 public:
     using iterator_category = std::bidirectional_iterator_tag;
-    using value_type = typename NodeIterator<NodeType, ValueType>::value_type;
-    using reference = typename NodeIterator<NodeType, value_type>::reference;
-    using const_reference = typename NodeIterator<NodeType, value_type>::const_reference;
-    using pointer = typename NodeIterator<NodeType, value_type>::pointer;
-    using const_pointer = typename NodeIterator<NodeType, value_type>::const_pointer;
-    using size_type = typename NodeIterator<NodeType, value_type>::size_type;
-    using difference_type = typename NodeIterator<NodeType, value_type>::difference_type;
+    using value_type = typename NodeIterator<node_type, ValueType>::value_type;
+    using reference = typename NodeIterator<node_type, value_type>::reference;
+    using const_reference = typename NodeIterator<node_type, value_type>::const_reference;
+    using pointer = typename NodeIterator<node_type, value_type>::pointer;
+    using const_pointer = typename NodeIterator<node_type, value_type>::const_pointer;
+    using size_type = typename NodeIterator<node_type, value_type>::size_type;
+    using difference_type = typename NodeIterator<node_type, value_type>::difference_type;
 
-    ReverseListIterator<value_type>& operator=(const NodeIterator<NodeType, value_type>& other)
+    ReverseListIterator<value_type>& operator=(const NodeIterator<node_type, value_type>& other)
     {
-        return *this = dynamic_cast<ReverseListIterator<value_type>&>(NodeIterator<NodeType, value_type>::operator=(other));
+        return *this = dynamic_cast<ReverseListIterator<value_type>&>(NodeIterator<node_type, value_type>::operator=(other));
     }
-    virtual ReverseListIterator<value_type>& operator++() { node = node->prev; return *this; }
-    virtual ReverseListIterator<value_type>& operator--() { node = node->next.get(); return *this; }
-    virtual ReverseListIterator<value_type> operator++(int)
+    ReverseListIterator<value_type>& operator++() override { node = node->prev; return *this; }
+    ReverseListIterator<value_type>& operator--() override { node = node->next.get(); return *this; }
+    ReverseListIterator<value_type> operator++(int)
     {
         ReverseListIterator<value_type> temp{*this};
         operator++();
         return temp;
     }
-    virtual ReverseListIterator<value_type> operator--(int)
+    ReverseListIterator<value_type> operator--(int)
     {
         ReverseListIterator<value_type> temp{*this};
         operator--();
@@ -217,34 +222,35 @@ public:
 };
 
 template<typename ValueType>
-class ConstReverseListIterator : public ConstNodeIterator<typename LinkedList<DoubleLinkage, ValueType>::NodeType, ValueType>
+class ConstReverseListIterator : public ConstNodeIterator<typename LinkedList<DoubleLinkage, ValueType>::node_type, ValueType>
 {
-    using NodeType = typename LinkedList<DoubleLinkage, ValueType>::NodeType;
-    using ConstNodeIterator<NodeType, ValueType>::ConstNodeIterator;
-    using ConstNodeIterator<NodeType, ValueType>::node;
+    bool is_reverse() override { return true; }
+    using node_type = typename LinkedList<DoubleLinkage, ValueType>::node_type;
+    using ConstNodeIterator<node_type, ValueType>::ConstNodeIterator;
+    using ConstNodeIterator<node_type, ValueType>::node;
 public:
     using iterator_category = std::bidirectional_iterator_tag;
-    using value_type = typename ConstNodeIterator<NodeType, ValueType>::value_type;
-    using reference = typename ConstNodeIterator<NodeType, value_type>::reference;
-    using const_reference = typename ConstNodeIterator<NodeType, value_type>::const_reference;
-    using pointer = typename ConstNodeIterator<NodeType, value_type>::pointer;
-    using const_pointer = typename ConstNodeIterator<NodeType, value_type>::const_pointer;
-    using size_type = typename ConstNodeIterator<NodeType, value_type>::size_type;
-    using difference_type = typename ConstNodeIterator<NodeType, value_type>::difference_type;
+    using value_type = typename ConstNodeIterator<node_type, ValueType>::value_type;
+    using reference = typename ConstNodeIterator<node_type, value_type>::reference;
+    using const_reference = typename ConstNodeIterator<node_type, value_type>::const_reference;
+    using pointer = typename ConstNodeIterator<node_type, value_type>::pointer;
+    using const_pointer = typename ConstNodeIterator<node_type, value_type>::const_pointer;
+    using size_type = typename ConstNodeIterator<node_type, value_type>::size_type;
+    using difference_type = typename ConstNodeIterator<node_type, value_type>::difference_type;
 
-    ConstReverseListIterator<value_type>& operator=(const ConstNodeIterator<NodeType, value_type>& other)
+    ConstReverseListIterator<value_type>& operator=(const ConstNodeIterator<node_type, value_type>& other)
     {
-        return *this = dynamic_cast<ConstReverseListIterator<value_type>&>(ConstNodeIterator<NodeType, value_type>::operator=(other));
+        return *this = dynamic_cast<ConstReverseListIterator<value_type>&>(ConstNodeIterator<node_type, value_type>::operator=(other));
     }
-    virtual ConstReverseListIterator<value_type>& operator++() { node = node->prev; return *this; }
-    virtual ConstReverseListIterator<value_type>& operator--() { node = node->next.get(); return *this; }
-    virtual ConstReverseListIterator<value_type> operator++(int)
+    ConstReverseListIterator<value_type>& operator++() override { node = node->prev; return *this; }
+    ConstReverseListIterator<value_type>& operator--() override { node = node->next.get(); return *this; }
+    ConstReverseListIterator<value_type> operator++(int)
     {
         ConstReverseListIterator<value_type> temp{*this};
         operator++();
         return temp;
     }
-    virtual ConstReverseListIterator<value_type> operator--(int)
+    ConstReverseListIterator<value_type> operator--(int)
     {
         ConstReverseListIterator<value_type> temp{*this};
         operator--();
@@ -254,66 +260,68 @@ public:
 };
 
 template<typename ValueType>
-class ForwardListIterator : public NodeIterator<typename LinkedList<SingleLinkage, ValueType>::NodeType, ValueType>
+class ForwardListIterator : public NodeIterator<typename LinkedList<SingleLinkage, ValueType>::node_type, ValueType>
 {
-    using NodeType = typename LinkedList<SingleLinkage, ValueType>::NodeType;
-    using NodeIterator<NodeType, ValueType>::NodeIterator;
-    using NodeIterator<NodeType, ValueType>::node;
+    bool is_reverse() override { return false; }
+    using node_type = typename LinkedList<SingleLinkage, ValueType>::node_type;
+    using NodeIterator<node_type, ValueType>::NodeIterator;
+    using NodeIterator<node_type, ValueType>::node;
 public:
     using iterator_category = std::forward_iterator_tag;
-    using value_type = typename NodeIterator<NodeType, ValueType>::value_type;
-    using reference = typename NodeIterator<NodeType, value_type>::reference;
-    using const_reference = typename NodeIterator<NodeType, value_type>::const_reference;
-    using pointer = typename NodeIterator<NodeType, value_type>::pointer;
-    using const_pointer = typename NodeIterator<NodeType, value_type>::const_pointer;
-    using size_type = typename NodeIterator<NodeType, value_type>::size_type;
-    using difference_type = typename NodeIterator<NodeType, value_type>::difference_type;
+    using value_type = typename NodeIterator<node_type, ValueType>::value_type;
+    using reference = typename NodeIterator<node_type, value_type>::reference;
+    using const_reference = typename NodeIterator<node_type, value_type>::const_reference;
+    using pointer = typename NodeIterator<node_type, value_type>::pointer;
+    using const_pointer = typename NodeIterator<node_type, value_type>::const_pointer;
+    using size_type = typename NodeIterator<node_type, value_type>::size_type;
+    using difference_type = typename NodeIterator<node_type, value_type>::difference_type;
 
-    ForwardListIterator<value_type>& operator=(const NodeIterator<NodeType, value_type>& other)
+    ForwardListIterator<value_type>& operator=(const NodeIterator<node_type, value_type>& other)
     {
-        return *this = dynamic_cast<ForwardListIterator<value_type>&>(NodeIterator<NodeType, value_type>::operator=(other));
+        return *this = dynamic_cast<ForwardListIterator<value_type>&>(NodeIterator<node_type, value_type>::operator=(other));
     }
-    virtual ForwardListIterator<value_type>& operator++() { node = node->next.get(); return *this; }
-    virtual ForwardListIterator<value_type>& operator--() { throw std::logic_error("Cannot decrement forward iterator."); }
-    virtual ForwardListIterator<value_type> operator++(int)
+    ForwardListIterator<value_type>& operator++() override { node = node->next.get(); return *this; }
+    ForwardListIterator<value_type>& operator--() override { throw std::logic_error("Cannot decrement forward iterator."); }
+    ForwardListIterator<value_type> operator++(int)
     { 
         ForwardListIterator<value_type> temp{*this};
         operator++();
         return temp;
     }
-    virtual ForwardListIterator<value_type> operator--(int) { throw std::logic_error("Cannot decrement forward iterator."); }
+    ForwardListIterator<value_type> operator--(int) { throw std::logic_error("Cannot decrement forward iterator."); }
     friend class SLinkedList<value_type>;
 };
 
 template<typename ValueType>
-class ConstForwardListIterator : public ConstNodeIterator<typename LinkedList<SingleLinkage, ValueType>::NodeType, ValueType>
+class ConstForwardListIterator : public ConstNodeIterator<typename LinkedList<SingleLinkage, ValueType>::node_type, ValueType>
 {
-    using NodeType = typename LinkedList<SingleLinkage, ValueType>::NodeType;
-    using ConstNodeIterator<NodeType, ValueType>::ConstNodeIterator;
-    using ConstNodeIterator<NodeType, ValueType>::node;
+    bool is_reverse() override { return false; }
+    using node_type = typename LinkedList<SingleLinkage, ValueType>::node_type;
+    using ConstNodeIterator<node_type, ValueType>::ConstNodeIterator;
+    using ConstNodeIterator<node_type, ValueType>::node;
 public:
     using iterator_category = std::forward_iterator_tag;
-    using value_type = typename ConstNodeIterator<NodeType, ValueType>::value_type;
-    using reference = typename ConstNodeIterator<NodeType, value_type>::reference;
-    using const_reference = typename ConstNodeIterator<NodeType, value_type>::const_reference;
-    using pointer = typename ConstNodeIterator<NodeType, value_type>::pointer;
-    using const_pointer = typename ConstNodeIterator<NodeType, value_type>::const_pointer;
-    using size_type = typename ConstNodeIterator<NodeType, value_type>::size_type;
-    using difference_type = typename ConstNodeIterator<NodeType, value_type>::difference_type;
+    using value_type = typename ConstNodeIterator<node_type, ValueType>::value_type;
+    using reference = typename ConstNodeIterator<node_type, value_type>::reference;
+    using const_reference = typename ConstNodeIterator<node_type, value_type>::const_reference;
+    using pointer = typename ConstNodeIterator<node_type, value_type>::pointer;
+    using const_pointer = typename ConstNodeIterator<node_type, value_type>::const_pointer;
+    using size_type = typename ConstNodeIterator<node_type, value_type>::size_type;
+    using difference_type = typename ConstNodeIterator<node_type, value_type>::difference_type;
 
-    ConstForwardListIterator<value_type>& operator=(const ConstNodeIterator<NodeType, value_type>& other)
+    ConstForwardListIterator<value_type>& operator=(const ConstNodeIterator<node_type, value_type>& other)
     {
-        return *this = dynamic_cast<ConstForwardListIterator<value_type>&>(ConstNodeIterator<NodeType, value_type>::operator=(other));
+        return *this = dynamic_cast<ConstForwardListIterator<value_type>&>(ConstNodeIterator<node_type, value_type>::operator=(other));
     }
-    virtual ConstForwardListIterator<value_type>& operator++() { node = node->next.get(); return *this; }
-    virtual ConstForwardListIterator<value_type>& operator--() { throw std::logic_error("Cannot decrement forward iterator."); }
-    virtual ConstForwardListIterator<value_type> operator++(int)
+    ConstForwardListIterator<value_type>& operator++() override { node = node->next.get(); return *this; }
+    ConstForwardListIterator<value_type>& operator--() override { throw std::logic_error("Cannot decrement forward iterator."); }
+    ConstForwardListIterator<value_type> operator++(int)
     {
         ConstForwardListIterator<value_type> temp{*this};
         operator++();
         return temp;
     }
-    virtual ConstForwardListIterator<value_type> operator--(int) { throw std::logic_error("Cannot decrement forward iterator."); }
+    ConstForwardListIterator<value_type> operator--(int) { throw std::logic_error("Cannot decrement forward iterator."); }
     friend class SLinkedList<value_type>;
 };
 
@@ -358,40 +366,33 @@ NodeType* pred(NodeType* node)
 template<typename NodeType, typename KeyType, typename ValueType>
 class TreeIterator : public NodeIterator<NodeType, std::pair<const KeyType, ValueType>>
 {
+    bool is_reverse() override { return false; }
+    using NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::NodeIterator;
+    using NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::node;
 public:
     using iterator_category = std::bidirectional_iterator_tag;
-    using NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::value_type;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::reference;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_reference;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::pointer;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_pointer;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::size_type;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::difference_type;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::NodeIterator;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::node;
+    using value_type = typename NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::value_type;
+    using reference = typename NodeIterator<NodeType, std::pair<const KeyType, value_type>>::reference;
+    using const_reference = typename NodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_reference;
+    using pointer = typename NodeIterator<NodeType, std::pair<const KeyType, value_type>>::pointer;
+    using const_pointer = typename NodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_pointer;
+    using size_type = typename NodeIterator<NodeType, std::pair<const KeyType, value_type>>::size_type;
+    using difference_type = typename NodeIterator<NodeType, std::pair<const KeyType, value_type>>::difference_type;
 
     TreeIterator<NodeType, KeyType, value_type>& operator=(const NodeIterator<NodeType, std::pair<const KeyType, value_type>>& other)
     {
         return *this = dynamic_cast<TreeIterator<NodeType, KeyType, value_type>&>(
                NodeIterator<NodeType, std::pair<const KeyType, value_type>>::operator=(other));
     }
-    virtual TreeIterator<NodeType, KeyType, value_type>& operator++()
-    {
-        node = succ<NodeType>(node);
-        return *this;
-    }
-    virtual TreeIterator<NodeType, KeyType, value_type>& operator--()
-    {
-        node = pred<NodeType>(node);
-        return *this;
-    }
-    virtual TreeIterator<NodeType, KeyType, value_type> operator++(int)
+    TreeIterator<NodeType, KeyType, value_type>& operator++() override { node = succ<NodeType>(node); return *this; }
+    TreeIterator<NodeType, KeyType, value_type>& operator--() override { node = pred<NodeType>(node); return *this; }
+    TreeIterator<NodeType, KeyType, value_type> operator++(int)
     {
         TreeIterator<NodeType, KeyType, value_type> temp{*this};
         operator++();
         return temp;
     }
-    virtual TreeIterator<NodeType, KeyType, value_type> operator--(int)
+    TreeIterator<NodeType, KeyType, value_type> operator--(int)
     {
         TreeIterator<NodeType, KeyType, value_type> temp{*this};
         operator--();
@@ -405,40 +406,33 @@ public:
 template<typename NodeType, typename KeyType, typename ValueType>
 class ConstTreeIterator : public ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>
 {
+    bool is_reverse() override { return false; }
+    using ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::ConstNodeIterator;
+    using ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::node;
 public:
     using iterator_category = std::bidirectional_iterator_tag;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::value_type;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::reference;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_reference;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::pointer;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_pointer;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::size_type;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::difference_type;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::ConstNodeIterator;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::node;
+    using value_type = typename ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::value_type;
+    using reference = typename ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::reference;
+    using const_reference = typename ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_reference;
+    using pointer = typename ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::pointer;
+    using const_pointer = typename ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_pointer;
+    using size_type = typename ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::size_type;
+    using difference_type = typename ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::difference_type;
 
     ConstTreeIterator<NodeType, KeyType, value_type>& operator=(const ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>& other)
     {
         return *this = dynamic_cast<ConstTreeIterator<NodeType, KeyType, value_type>&>(
                ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::operator=(other));
     }
-    virtual ConstTreeIterator<NodeType, KeyType, value_type>& operator++()
-    {
-        node = succ<NodeType>(node);
-        return *this;
-    }
-    virtual ConstTreeIterator<NodeType, KeyType, value_type>& operator--()
-    {
-        node = pred<NodeType>(node);
-        return *this;
-    }
-    virtual ConstTreeIterator<NodeType, KeyType, value_type> operator++(int)
+    ConstTreeIterator<NodeType, KeyType, value_type>& operator++() override { node = succ<NodeType>(node); return *this; }
+    ConstTreeIterator<NodeType, KeyType, value_type>& operator--() override  { node = pred<NodeType>(node); return *this; }
+    ConstTreeIterator<NodeType, KeyType, value_type> operator++(int)
     {
         ConstTreeIterator<NodeType, KeyType, value_type> temp{*this};
         operator++();
         return temp;
     }
-    virtual ConstTreeIterator<NodeType, KeyType, value_type> operator--(int)
+    ConstTreeIterator<NodeType, KeyType, value_type> operator--(int)
     {
         ConstTreeIterator<NodeType, KeyType, value_type> temp{*this};
         operator--();
@@ -452,40 +446,33 @@ public:
 template<typename NodeType, typename KeyType, typename ValueType>
 class ReverseTreeIterator : public NodeIterator<NodeType, std::pair<const KeyType, ValueType>>
 {
+    bool is_reverse() override { return false; }
+    using NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::NodeIterator;
+    using NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::node;
 public:
     using iterator_category = std::bidirectional_iterator_tag;
-    using NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::value_type;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::reference;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_reference;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::pointer;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_pointer;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::size_type;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::difference_type;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::NodeIterator;
-    using NodeIterator<NodeType, std::pair<const KeyType, value_type>>::node;
+    using value_type = typename NodeIterator<NodeType, std::pair<const KeyType, ValueType>>::value_type;
+    using reference = typename NodeIterator<NodeType, std::pair<const KeyType, value_type>>::reference;
+    using const_reference = typename NodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_reference;
+    using pointer = typename NodeIterator<NodeType, std::pair<const KeyType, value_type>>::pointer;
+    using const_pointer = typename NodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_pointer;
+    using size_type = typename NodeIterator<NodeType, std::pair<const KeyType, value_type>>::size_type;
+    using difference_type = typename NodeIterator<NodeType, std::pair<const KeyType, value_type>>::difference_type;
 
     ReverseTreeIterator<NodeType, KeyType, value_type>& operator=(const NodeIterator<NodeType, std::pair<const KeyType, value_type>>& other)
     {
         return *this = dynamic_cast<ReverseTreeIterator<NodeType, KeyType, value_type>&>(
                NodeIterator<NodeType, std::pair<const KeyType, value_type>>::operator=(other));
     }
-    virtual ReverseTreeIterator<NodeType, KeyType, value_type>& operator++()
-    {
-        node = pred<NodeType>(node);
-        return *this;
-    }
-    virtual ReverseTreeIterator<NodeType, KeyType, value_type>& operator--()
-    {
-        node = succ<NodeType>(node);
-        return *this;
-    }
-    virtual ReverseTreeIterator<NodeType, KeyType, value_type> operator++(int)
+    ReverseTreeIterator<NodeType, KeyType, value_type>& operator++() override { node = pred<NodeType>(node); return *this; }
+    ReverseTreeIterator<NodeType, KeyType, value_type>& operator--() override { node = succ<NodeType>(node); return *this; }
+    ReverseTreeIterator<NodeType, KeyType, value_type> operator++(int)
     {
         ReverseTreeIterator<NodeType, KeyType, value_type> temp{*this};
         operator++();
         return temp;
     }
-    virtual ReverseTreeIterator<NodeType, KeyType, value_type> operator--(int)
+    ReverseTreeIterator<NodeType, KeyType, value_type> operator--(int)
     {
         ReverseTreeIterator<NodeType, KeyType, value_type> temp{*this};
         operator--();
@@ -499,40 +486,33 @@ public:
 template<typename NodeType, typename KeyType, typename ValueType>
 class ConstReverseTreeIterator : public ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>
 {
+    bool is_reverse() override { return false; }
+    using ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::ConstNodeIterator;
+    using ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::node;
 public:
     using iterator_category = std::bidirectional_iterator_tag;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::value_type;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::reference;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_reference;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::pointer;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_pointer;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::size_type;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::difference_type;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::ConstNodeIterator;
-    using ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::node;
+    using value_type = typename ConstNodeIterator<NodeType, std::pair<const KeyType, ValueType>>::value_type;
+    using reference = typename ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::reference;
+    using const_reference = typename ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_reference;
+    using pointer = typename ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::pointer;
+    using const_pointer = typename ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::const_pointer;
+    using size_type = typename ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::size_type;
+    using difference_type = typename ConstNodeIterator<NodeType, std::pair<const KeyType, value_type>>::difference_type;
 
     ConstReverseTreeIterator<NodeType, KeyType, value_type>& operator=(const NodeIterator<NodeType, std::pair<const KeyType, value_type>>& other)
     {
         return *this = dynamic_cast<ConstReverseTreeIterator<NodeType, KeyType, value_type>&>(
                NodeIterator<NodeType, std::pair<const KeyType, value_type>>::operator=(other));
     }
-    virtual ConstReverseTreeIterator<NodeType, KeyType, value_type>& operator++()
-    {
-        node = pred<NodeType>(node);
-        return *this;
-    }
-    virtual ConstReverseTreeIterator<NodeType, KeyType, value_type>& operator--()
-    {
-        node = succ<NodeType>(node);
-        return *this;
-    }
-    virtual ConstReverseTreeIterator<NodeType, KeyType, value_type> operator++(int)
+    ConstReverseTreeIterator<NodeType, KeyType, value_type>& operator++() override { node = pred<NodeType>(node); return *this; }
+    ConstReverseTreeIterator<NodeType, KeyType, value_type>& operator--() override { node = succ<NodeType>(node); return *this; }
+    ConstReverseTreeIterator<NodeType, KeyType, value_type> operator++(int)
     {
         ConstReverseTreeIterator<NodeType, KeyType, value_type> temp{*this};
         operator++();
         return temp;
     }
-    virtual ConstReverseTreeIterator<NodeType, KeyType, value_type> operator--(int)
+    ConstReverseTreeIterator<NodeType, KeyType, value_type> operator--(int)
     {
         ConstReverseTreeIterator<NodeType, KeyType, value_type> temp{*this};
         operator--();

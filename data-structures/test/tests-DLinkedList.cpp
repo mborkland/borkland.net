@@ -632,9 +632,78 @@ TEST_CASE("DLinkedList operations work correctly with reverse iterators", "[DLin
 {
     SECTION("Insert operations work correctly with reverse iterators", "[DLinkedList]")
     {
+        constexpr int magic_number = 42;
+
         SECTION("Insert_before works as expected with reverse iterators", "[DLinkedList]")
         {
+            constexpr int n = 49;
+            REQUIRE(n % 2 == 1);
+            auto dlist = fill_list_with_consecutive_values(n);
+            dlist.push_front(0);
 
+            for (auto rit = dlist.rbegin(); rit != dlist.rend(); ++rit) {
+                if (*rit % 2 == 0) {
+                    rit = dlist.insert_before(rit, magic_number);
+                }
+            }
+
+            for (auto rit = dlist.rbegin(); rit != dlist.rend(); ++rit) {
+                auto prev_it = rit;
+                auto next_it = rit;
+                --prev_it;
+                ++next_it;
+                if (*rit == magic_number) {
+                    continue;
+                } else if (*rit % 2 == 0) {
+                    REQUIRE(*prev_it == magic_number);
+                } else {
+                    REQUIRE(*next_it == magic_number);
+                }
+            }
+        }
+
+        SECTION("Insert_after works as expected with reverse iterators", "[DLinkedList]")
+        {
+            constexpr int n = 50;
+            REQUIRE(n % 2 == 0);
+            auto dlist = fill_list_with_consecutive_values(n);
+
+            for (auto it = dlist.begin(); it != dlist.end(); ++it) {
+                if (*it % 2 == 1) {
+                    it = dlist.insert_after(it, magic_number);
+                }
+            }
+
+            for (auto it = dlist.begin(); it != dlist.end(); ++it) {
+                auto prev_it = it;
+                auto next_it = it;
+                --prev_it;
+                ++next_it;
+                if (*it == magic_number) {
+                    continue;
+                } else if (*it % 2 == 0) {
+                    REQUIRE(*prev_it == magic_number);
+                } else {
+                    REQUIRE(*next_it == magic_number);
+                }
+            }
+        }
+    }
+
+    SECTION("Erase works as expected with reverse iterators", "[DLinkedList]")
+    {
+        constexpr int n = 50;
+        auto dlist = fill_list_with_consecutive_values(n);
+        for (auto rit = dlist.rbegin(); rit != dlist.rend(); ) {
+            if (*rit % 2 == 0) {
+                rit = dlist.erase(rit);
+            } else {
+                ++rit;
+            }
+        }
+
+        for (const auto& x : dlist) {
+            REQUIRE(x % 2 == 1);
         }
     }
 }

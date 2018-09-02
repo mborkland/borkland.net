@@ -10,14 +10,14 @@
 namespace bork_lib
 {
 
-template<typename, typename = void>
-struct can_be_dereferenced : std::false_type { };
-
-template<typename T>
-struct can_be_dereferenced<T, std::void_t<decltype(*std::declval<T>())>> : std::true_type { };
-
 class SingleLinkage {};
 class DoubleLinkage {};
+
+template<typename, typename = void>
+struct supports_less_than : std::false_type { };
+
+template<typename T>
+struct supports_less_than<T, std::void_t<decltype(std::declval<T&>() <= std::declval<T&>())>> : std::true_type { };
 
 template<typename LinkageType, typename ValueType>
 class LinkedList {
@@ -28,19 +28,25 @@ protected:
     struct ListNode<ShadowedLinkageType, std::enable_if_t<std::is_same<ShadowedLinkageType, SingleLinkage>::value>>
     {
         ValueType data;
-        std::unique_ptr<ListNode> next;
-        explicit ListNode(ValueType&& data, std::unique_ptr<ListNode>&& next = std::unique_ptr<ListNode>(nullptr))
-                : data{std::forward<ValueType>(data)}, next{std::move(next)} { }
+        std::unique_ptr<ListNode> next = std::unique_ptr<ListNode>(nullptr);
+
+        template<typename... Args, std::enable_if_t<std::is_constructible_v<ValueType, Args&&...>>>
+        explicit ListNode(Args&&... args) : data{std::forward<Args>(args)...} { }
+        explicit ListNode(const ValueType& data) : data{data} { }
+        explicit ListNode(ValueType&& data) : data{std::forward<ValueType>(data)} { }
     };
 
     template<typename ShadowedLinkageType>
     struct ListNode<ShadowedLinkageType, std::enable_if_t<!std::is_same<ShadowedLinkageType, SingleLinkage>::value>>
     {
         ValueType data;
-        std::unique_ptr<ListNode> next;
-        ListNode* prev;
-        explicit ListNode(ValueType&& data, std::unique_ptr<ListNode>&& next = std::unique_ptr<ListNode>(nullptr),
-                ListNode* prev = nullptr) : data{std::forward<ValueType>(data)}, next{std::move(next)}, prev{prev} { }
+        std::unique_ptr<ListNode> next = std::unique_ptr<ListNode>(nullptr);
+        ListNode* prev = nullptr;
+
+        template<typename... Args, std::enable_if_t<std::is_constructible_v<ValueType, Args&&...>>>
+        explicit ListNode(Args&&... args) : data{std::forward<Args>(args)...} { }
+        explicit ListNode(const ValueType& data) : data{data} { }
+        explicit ListNode(ValueType&& data) : data{std::forward<ValueType>(data)} { }
     };
 
 public:
@@ -60,23 +66,25 @@ public:
     using node_iterator = NodeIterator<ListNode<LinkageType>, value_type>;
 
 protected:
-    using NodeType = ListNode<LinkageType>;
-    std::unique_ptr<NodeType> head = std::unique_ptr<NodeType>(nullptr);
-    NodeType* tail = nullptr;
+    using node_type = ListNode<LinkageType>;
+    std::unique_ptr<node_type> head = std::unique_ptr<node_type>(nullptr);
+    node_type* tail = nullptr;
     bool srtd = true;         // the list is guaranteed to be sorted if true
     size_type sz = 0;         // size of the list
-    void list_swap(LinkedList<LinkageType, ValueType>& list1, LinkedList<LinkageType, ValueType>& list2);
+
+    void list_swap(LinkedList<LinkageType, ValueType>& other);
     void swap(value_type& a, value_type& b);
+
     template<typename... Args> void emplace_empty(Args&&... args);
-    NodeType* find_sorted_position(const value_type& val);
-    virtual NodeType* emplace_before_node(NodeType* node, value_type&& val) = 0;
-    virtual void emplace_after_node(NodeType* node, value_type&& val) = 0;
-    virtual void mergesort(std::unique_ptr<NodeType>& left_owner, size_type size);
-    virtual void merge(std::unique_ptr<NodeType>& left_owner, NodeType* right_raw, size_type right_size) = 0;
-    virtual NodeType* delete_node(NodeType* node) = 0;
-    NodeType* search_front(const value_type& val) const noexcept;
+    node_type* find_sorted_position(const value_type& val);
+    virtual node_type* emplace_before_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse) = 0;
+    virtual node_type* emplace_after_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse) = 0;
+    void mergesort(std::unique_ptr<node_type>& left_owner, size_type size);
+    virtual void merge(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size) = 0;
+
+    virtual node_type* delete_node(node_type* node, bool is_reverse) = 0;
+    node_type* search_front(const value_type& val) const noexcept;
     template<typename InputIterator> void construct_from_iterator_range(InputIterator begin, InputIterator end);
-    void construct_with_k_nodes(size_type num_elems, const value_type& val = {});
 
 public:
     // construction, assignment, and destruction
@@ -95,11 +103,11 @@ public:
     reference back() const noexcept { return tail->data; }
 
     node_iterator& insert_before(node_iterator& iter, const value_type& val) { return emplace_before(iter, val); }
-    node_iterator& insert_before(node_iterator& iter, value_type&& val) { return emplace_before(iter, val); }
+    node_iterator& insert_before(node_iterator& iter, value_type&& val) { return emplace_before(iter, std::forward<value_type>(val)); }
     node_iterator& insert_after(node_iterator& iter, const value_type& val) { return emplace_after(iter, val); }
-    node_iterator& insert_after(node_iterator& iter, value_type&& val) { return emplace_after(iter, val); }
+    node_iterator& insert_after(node_iterator& iter, value_type&& val) { return emplace_after(iter, std::forward<value_type>(val)); }
     void insert_sorted(const value_type& val) { return emplace_sorted(val); }
-    void insert_sorted(value_type&& val) { return emplace_sorted(val); }
+    void insert_sorted(value_type&& val) { return emplace_sorted(std::forward<value_type>(val)); }
 
     template<typename... Args> node_iterator& emplace_before(node_iterator& iter, Args&&... args);
     template<typename... Args> node_iterator& emplace_after(node_iterator& iter, Args&&... args);
@@ -109,15 +117,18 @@ public:
     void push_front(value_type&& val) { iterator iter{head.get()}; insert_before(iter, std::forward<value_type>(val)); }
     void push_back(const value_type& val) { iterator iter{tail}; insert_after(iter, val); }
     void push_back(value_type&& val) { iterator iter{tail}; insert_after(iter, std::forward<value_type>(val)); }
-    virtual void pop_front() { delete_node(head.get()); }
-    virtual void pop_back() { delete_node(tail); }
+    virtual void pop_front() { delete_node(head.get(), false); }
+    virtual void pop_back() { delete_node(tail, false); }
 
-    iterator find(const value_type& val) const;
-    size_type count(const value_type& val) const;
+    iterator find(const value_type& val) const noexcept;
+    size_type count(const value_type& val) const noexcept;
     node_iterator& erase(node_iterator& iter);
     void clear() noexcept;
 
+    template<typename T = value_type, std::enable_if_t<supports_less_than<T>::value, int> = 0>
     void sort();
+    template<typename T = value_type, std::enable_if_t<!supports_less_than<T>::value, int> = 0>
+    void sort() { throw std::logic_error("List cannot be sorted, as value_type does not support comparison."); }
 
     // iterator functions
     iterator begin() noexcept { return iterator{head.get()}; }
@@ -126,7 +137,6 @@ public:
     const_iterator end() const noexcept { return const_iterator{nullptr}; };
     const_iterator cbegin() const noexcept { return const_iterator{head.get()}; }
     const_iterator cend()  const noexcept { return const_iterator{nullptr}; }
-
 
     friend class ListIterator<value_type>;
     friend class ConstListIterator<value_type>;
@@ -152,21 +162,21 @@ LinkedList<LinkageType, ValueType>& LinkedList<LinkageType, ValueType>::operator
 template<typename LinkageType, typename ValueType>
 LinkedList<LinkageType, ValueType>& LinkedList<LinkageType, ValueType>::operator=(LinkedList<LinkageType, ValueType>&& other) noexcept
 {
-    list_swap(*this, other);
+    list_swap(other);
     return *this;
 }
 
 template<typename LinkageType, typename ValueType>
-void LinkedList<LinkageType, ValueType>::list_swap(LinkedList<LinkageType, ValueType>& list1, LinkedList<LinkageType, ValueType>& list2)
+void LinkedList<LinkageType, ValueType>::list_swap(LinkedList<LinkageType, ValueType>& other)
 {
-    auto temp_unique = std::move(list1.head);
-    list1.head = std::move(list2.head);
-    list2.head = std::move(temp_unique);
+    auto temp_unique = std::move(head);
+    head = std::move(other.head);
+    other.head = std::move(temp_unique);
 
     using std::swap;
-    swap(list1.tail, list2.tail);
-    swap(list1.sz, list2.sz);
-    swap(list1.srtd, list2.srtd);
+    swap(tail, other.tail);
+    swap(sz, other.sz);
+    swap(srtd, other.srtd);
 }
 
 template<typename LinkageType, typename ValueType>
@@ -177,17 +187,19 @@ void LinkedList<LinkageType, ValueType>::swap(value_type& a, value_type& b)
     b = std::move(tmp);
 }
 
+/* Helper function to insert an element in-place into an empty list. */
 template<typename LinkageType, typename ValueType>
 template<typename... Args>
 void LinkedList<LinkageType, ValueType>::emplace_empty(Args&&... args)
 {
-    head = std::make_unique<NodeType>(NodeType{value_type{args...}});
+    head = std::make_unique<node_type>(std::forward<Args>(args)...);
     tail = head.get();
     ++sz;
 }
 
+/* Helper function to find the correct position for inserting an element into a sorted list. */
 template<typename LinkageType, typename ValueType>
-typename LinkedList<LinkageType, ValueType>::NodeType* LinkedList<LinkageType, ValueType>::find_sorted_position(const value_type &val)
+typename LinkedList<LinkageType, ValueType>::node_type* LinkedList<LinkageType, ValueType>::find_sorted_position(const value_type &val)
 {
     auto node = head.get();
     while (node) {
@@ -200,8 +212,9 @@ typename LinkedList<LinkageType, ValueType>::NodeType* LinkedList<LinkageType, V
     return nullptr;
 }
 
+/* Helper function used to recursively sort and merge sublists. */
 template<typename LinkageType, typename ValueType>
-void LinkedList<LinkageType, ValueType>::mergesort(std::unique_ptr<NodeType>& left_owner, size_type size)
+void LinkedList<LinkageType, ValueType>::mergesort(std::unique_ptr<node_type>& left_owner, size_type size)
 {
     if (size <= 1)  // already sorted
         return;
@@ -217,8 +230,9 @@ void LinkedList<LinkageType, ValueType>::mergesort(std::unique_ptr<NodeType>& le
     merge(left_owner, right_owner.get(), size - split);  // merge the two halves
 }
 
+/* Helper function that returns a pointer to the first node with the value specified. */
 template<typename LinkageType, typename ValueType>
-typename LinkedList<LinkageType, ValueType>::NodeType* LinkedList<LinkageType, ValueType>::search_front(const value_type& val) const noexcept
+typename LinkedList<LinkageType, ValueType>::node_type* LinkedList<LinkageType, ValueType>::search_front(const value_type& val) const noexcept
 {
     auto node = head.get();
     while (node) {
@@ -242,6 +256,7 @@ void LinkedList<LinkageType, ValueType>::construct_from_iterator_range(InputIter
     srtd = std::is_sorted(begin, end);
 }
 
+/* Public function that inserts a value in-place before a node in the list. */
 template<typename LinkageType, typename ValueType>
 template<typename... Args>
 typename LinkedList<LinkageType, ValueType>::node_iterator& LinkedList<LinkageType, ValueType>::emplace_before(node_iterator& iter, Args&&... args)
@@ -250,12 +265,14 @@ typename LinkedList<LinkageType, ValueType>::node_iterator& LinkedList<LinkageTy
         emplace_empty(std::forward<Args>(args)...);
         iter.node = head.get();
     } else {
-        iter.node = emplace_before_node(iter.node, value_type{args...});
+        auto new_node = std::make_unique<node_type>(std::forward<Args>(args)...);
+        iter.node = emplace_before_node(iter.node, new_node, iter.is_reverse());
     }
 
     return iter;
 }
 
+/* Public function that inserts a value in-place after a node in the list. */
 template<typename LinkageType, typename ValueType>
 template<typename... Args>
 typename LinkedList<LinkageType, ValueType>::node_iterator& LinkedList<LinkageType, ValueType>::emplace_after(node_iterator& iter, Args&&... args)
@@ -263,13 +280,15 @@ typename LinkedList<LinkageType, ValueType>::node_iterator& LinkedList<LinkageTy
     if (empty()) {
         emplace_empty(std::forward<Args>(args)...);
         iter.node = head.get();
-        return iter;
+    } else {
+        auto new_node = std::make_unique<node_type>(std::forward<Args>(args)...);
+        iter.node = emplace_after_node(iter.node, new_node, iter.is_reverse());
     }
 
-    emplace_after_node(iter.node, value_type{args...});
-    return ++iter;
+    return iter;
 }
 
+/* Public function that inserts a value in-place into its correct position in a sorted list. */
 template<typename LinkageType, typename ValueType>
 template<typename... Args>
 void LinkedList<LinkageType, ValueType>::emplace_sorted(Args&&... args)
@@ -280,16 +299,15 @@ void LinkedList<LinkageType, ValueType>::emplace_sorted(Args&&... args)
     }
 
     sort();    // won't sort if already sorted
-    auto position = find_sorted_position(value_type{args...});
-    if (position) {
-        emplace_before_node(position, value_type{args...});
-    } else {
-        emplace_after_node(tail, value_type{args...});
-    }
+    auto new_node = std::make_unique<node_type>(std::forward<Args>(args)...);
+    auto position = find_sorted_position(new_node->data);
+    position ? emplace_before_node(position, new_node, false) : emplace_after_node(tail, new_node, false);
+    srtd = true;
 }
 
+/* Public function that attempts to find a value within the list. */
 template<typename LinkageType, typename ValueType>
-typename LinkedList<LinkageType, ValueType>::iterator LinkedList<LinkageType, ValueType>::find(const value_type &val) const
+typename LinkedList<LinkageType, ValueType>::iterator LinkedList<LinkageType, ValueType>::find(const value_type &val) const noexcept
 {
     auto node = head.get();
     while (node) {
@@ -302,8 +320,9 @@ typename LinkedList<LinkageType, ValueType>::iterator LinkedList<LinkageType, Va
     return iterator{node};
 };
 
+/* Public function that counts the occurrences of a value in the list. */
 template<typename LinkageType, typename ValueType>
-typename LinkedList<LinkageType, ValueType>::size_type LinkedList<LinkageType, ValueType>::count(const value_type& val) const
+typename LinkedList<LinkageType, ValueType>::size_type LinkedList<LinkageType, ValueType>::count(const value_type& val) const noexcept
 {
     auto node = head.get();
     size_type count = 0;
@@ -317,7 +336,9 @@ typename LinkedList<LinkageType, ValueType>::size_type LinkedList<LinkageType, V
     return count;
 }
 
+/* Public sort function. Calls the mergesort helper function. */
 template<typename LinkageType, typename ValueType>
+template<typename T, std::enable_if_t<supports_less_than<T>::value, int>>
 void LinkedList<LinkageType, ValueType>::sort()
 {
     if (srtd) {
@@ -328,13 +349,7 @@ void LinkedList<LinkageType, ValueType>::sort()
     srtd = true;
 }
 
-/*template<typename LinkageType, typename ValueType>
-template<typename ShadowedValueType, std::enable_if_t<!supports_less_than<ShadowedValueType>::value, ValueType>>
-void LinkedList<LinkageType, ValueType>::sort()
-{
-    throw std::logic_error("Sort function can only be called on comparable types.");
-}*/
-
+/* Public function that erases a node pointed to by an iterator. */
 template<typename LinkageType, typename ValueType>
 typename LinkedList<LinkageType, ValueType>::node_iterator& LinkedList<LinkageType, ValueType>::erase(node_iterator& iter)
 {
@@ -342,10 +357,11 @@ typename LinkedList<LinkageType, ValueType>::node_iterator& LinkedList<LinkageTy
         throw std::out_of_range{"Can't delete from empty list."};
     }
 
-    iter.node = delete_node(iter.node);
+    iter.node = delete_node(iter.node, iter.is_reverse());
     return iter;
 }
 
+/* Public function that clears a list. */
 template<typename LinkageType, typename ValueType>
 void LinkedList<LinkageType, ValueType>::clear() noexcept
 {
