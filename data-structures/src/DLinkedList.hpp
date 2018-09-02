@@ -39,8 +39,8 @@ private:
     using LinkedList<DoubleLinkage, value_type>::LinkedList;
     using LinkedList<DoubleLinkage, value_type>::construct_from_iterator_range;
 
-    node_type* emplace_before_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse) override;
-    node_type* emplace_after_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse) override;
+    node_type* insert_node_before(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse) override;
+    node_type* insert_node_after(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse) override;
 
     void merge(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size) override;
     template<typename T = value_type, std::enable_if_t<supports_less_than<T>::value, int> = 0>
@@ -54,7 +54,7 @@ public:
     DLinkedList() : LinkedList<DoubleLinkage, value_type>{} { }
     DLinkedList(const DLinkedList<value_type>& other) : DLinkedList{other.cbegin(), other.cend()} { srtd = other.srtd; }
     DLinkedList(DLinkedList<value_type>&& other) noexcept : LinkedList<DoubleLinkage, value_type>{std::forward<DLinkedList<value_type>>(other)} { }
-    template<typename InputIterator> DLinkedList(InputIterator begin, InputIterator end);
+    template<typename InputIterator> DLinkedList(InputIterator begin, InputIterator end) { construct_from_iterator_range(begin, end); }
     DLinkedList(std::initializer_list<value_type> li) : DLinkedList<value_type>{li.begin(), li.end()} { }
     ~DLinkedList() = default;
     DLinkedList& operator=(const DLinkedList<value_type>& other) = default;
@@ -74,22 +74,16 @@ public:
     friend class NodeIterator<node_type, value_type>;
 };
 
+/* Helper function that takes a new node and inserts it before an existing node in the list. */
 template<typename ValueType>
-template<typename InputIterator>
-DLinkedList<ValueType>::DLinkedList(InputIterator begin, InputIterator end)
-{
-    construct_from_iterator_range(begin, end);
-}
-
-template<typename ValueType>
-typename DLinkedList<ValueType>::node_type* DLinkedList<ValueType>::emplace_before_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse)
+typename DLinkedList<ValueType>::node_type* DLinkedList<ValueType>::insert_node_before(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse)
 {
     if (!node) {
         throw std::invalid_argument{"Non-empty list pointer can't be null."};
     }
 
     if (is_reverse) {
-        return emplace_after_node(node, new_node, false)->prev;
+        return insert_node_after(node, new_node, false)->prev;
     }
 
     ++sz;
@@ -107,15 +101,16 @@ typename DLinkedList<ValueType>::node_type* DLinkedList<ValueType>::emplace_befo
     return node;
 }
 
+/* Helper function that takes a new node and inserts it after an existing node in the list. */
 template<typename ValueType>
-typename DLinkedList<ValueType>::node_type* DLinkedList<ValueType>::emplace_after_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse)
+typename DLinkedList<ValueType>::node_type* DLinkedList<ValueType>::insert_node_after(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse)
 {
     if (!node) {
         throw std::invalid_argument{"Non-empty list pointer can't be null."};
     }
 
     if (is_reverse) {
-        return emplace_before_node(node, new_node, false)->prev;
+        return insert_node_before(node, new_node, false)->prev;
     }
 
     ++sz;
@@ -131,12 +126,15 @@ typename DLinkedList<ValueType>::node_type* DLinkedList<ValueType>::emplace_afte
     return node->next.get();
 }
 
+/* Mergesort function in the base class calls this function, which calls whichever merge_helper function was
+   compiled using SFINAE. */
 template<typename ValueType>
 void DLinkedList<ValueType>::merge(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size)
 {
     merge_helper(left_owner, right_raw, right_size);
 }
 
+/* Helper function that merges two sublists completely in-place. */
 template<typename ValueType>
 template<typename T, std::enable_if_t<supports_less_than<T>::value, int>>
 void DLinkedList<ValueType>::merge_helper(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size)
@@ -185,6 +183,7 @@ void DLinkedList<ValueType>::merge_helper(std::unique_ptr<node_type>& left_owner
     }
 }
 
+/* Helper function that removes a node from the list. */
 template<typename ValueType>
 typename DLinkedList<ValueType>::node_type* DLinkedList<ValueType>::delete_node(node_type* node, bool is_reverse)
 {

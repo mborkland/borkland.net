@@ -707,3 +707,135 @@ TEST_CASE("DLinkedList operations work correctly with reverse iterators", "[DLin
         }
     }
 }
+
+struct A
+{
+    int x;
+    int y;
+};
+
+TEST_CASE("DLinkedList can hold objects that cannot be sorted", "[DLinkedList]")
+{
+    DLinkedList<A> dlist;
+    REQUIRE_THROWS_WITH(dlist.sort(), Catch::Contains("cannot be sorted"));
+}
+
+template<typename T>
+struct NonCopyable
+{
+    T x;
+    T y;
+    explicit NonCopyable(T x = {}, T y = {}) : x{x}, y{y} { }
+    NonCopyable(const NonCopyable& other) = delete;
+    NonCopyable& operator=(const NonCopyable& other) = delete;
+    NonCopyable(NonCopyable&& other) noexcept : x{std::move(other.x)}, y{std::move(other.y)} { }
+    NonCopyable& operator=(NonCopyable&& other) noexcept
+    {
+        using std::swap;
+        swap(x, other.x);
+        swap(y, other.y);
+        return *this;
+    }
+    ~NonCopyable() = default;
+    friend bool operator<=(const NonCopyable& lhs, const NonCopyable& rhs)
+    {
+        return lhs.x <= rhs.x;
+    }
+};
+
+template<typename T>
+struct NonMoveable
+{
+    T x;
+    T y;
+    explicit NonMoveable(T x = {}, T y = {}) : x{x}, y{y} { }
+    NonMoveable(const NonMoveable& other) : x{other.x}, y{other.y} { }
+    NonMoveable& operator=(const NonMoveable& other) { x = other.x; y = other.y; return *this; }
+    NonMoveable(NonMoveable&& other) = delete;
+    NonMoveable& operator=(NonMoveable&& other) = delete;
+    ~NonMoveable() = default;
+    friend bool operator<=(const NonMoveable& lhs, const NonMoveable& rhs)
+    {
+        return lhs.x <= rhs.x;
+    }
+};
+
+template<typename T>
+struct NonCopyableAndNonMoveable
+{
+    T x;
+    T y;
+    explicit NonCopyableAndNonMoveable(T x = {}, T y = {}) : x{x}, y{y} { }
+    NonCopyableAndNonMoveable(const NonCopyableAndNonMoveable& other) = delete;
+    NonCopyableAndNonMoveable& operator=(const NonCopyableAndNonMoveable& other) = delete;
+    NonCopyableAndNonMoveable(NonCopyableAndNonMoveable&& other) = delete;
+    NonCopyableAndNonMoveable& operator=(NonCopyableAndNonMoveable&& other) = delete;
+    ~NonCopyableAndNonMoveable() = default;
+    friend bool operator<=(const NonCopyableAndNonMoveable& lhs, const NonCopyableAndNonMoveable& rhs)
+    {
+        return lhs.x <= rhs.x;
+    }
+};
+
+TEST_CASE("DLinkedList can hold non-copyable and non-movable objects", "[DLinkedList]")
+{
+    SECTION("DLinkedList can hold non-copyable objects")
+    {
+        using no_copy = NonCopyable<int>;
+        DLinkedList<no_copy> dlist;
+        dlist.emplace_back(1, 2);
+        dlist.emplace_back(3, 4);
+        dlist.emplace_front(5, 6);
+        REQUIRE(dlist.size() == 3);
+        auto it = dlist.begin();
+        REQUIRE(it->x == 5);
+        REQUIRE(it->y == 6);
+        ++it;
+        REQUIRE(it->x == 1);
+        REQUIRE(it->y == 2);
+        ++it;
+        REQUIRE(it->x == 3);
+        REQUIRE(it->y == 4);
+        dlist.sort();
+    }
+
+    SECTION("DLinkedList can hold non-moveable objects")
+    {
+        using no_move = NonMoveable<int>;
+        DLinkedList<no_move> dlist;
+        dlist.emplace_back(1, 2);
+        dlist.emplace_back(3, 4);
+        dlist.emplace_front(5, 6);
+        REQUIRE(dlist.size() == 3);
+        auto it = dlist.begin();
+        REQUIRE(it->x == 5);
+        REQUIRE(it->y == 6);
+        ++it;
+        REQUIRE(it->x == 1);
+        REQUIRE(it->y == 2);
+        ++it;
+        REQUIRE(it->x == 3);
+        REQUIRE(it->y == 4);
+        dlist.sort();
+    }
+
+    SECTION("DLinkedList can hold objects that are both non-copyable and non-moveable")
+    {
+        using no_copy_no_move = NonCopyableAndNonMoveable<int>;
+        DLinkedList<no_copy_no_move> dlist;
+        dlist.emplace_back(1, 2);
+        dlist.emplace_back(3, 4);
+        dlist.emplace_front(5, 6);
+        REQUIRE(dlist.size() == 3);
+        auto it = dlist.begin();
+        REQUIRE(it->x == 5);
+        REQUIRE(it->y == 6);
+        ++it;
+        REQUIRE(it->x == 1);
+        REQUIRE(it->y == 2);
+        ++it;
+        REQUIRE(it->x == 3);
+        REQUIRE(it->y == 4);
+        dlist.sort();
+    }
+}

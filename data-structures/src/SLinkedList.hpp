@@ -38,8 +38,8 @@ private:
     using LinkedList<SingleLinkage, value_type>::construct_from_iterator_range;
     using LinkedList<SingleLinkage, value_type>::swap;
 
-    node_type* emplace_before_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse) override;
-    node_type* emplace_after_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse) override;
+    node_type* insert_node_before(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse) override;
+    node_type* insert_node_after(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse) override;
 
     void merge(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size) override;
     template<typename T = value_type, std::enable_if_t<supports_less_than<T>::value, int> = 0>
@@ -64,8 +64,9 @@ public:
     friend class NodeIterator<node_type, value_type>;
 };
 
+/* Helper function that takes a new node and inserts it before an existing node in the list. */
 template<typename ValueType>
-typename SLinkedList<ValueType>::node_type* SLinkedList<ValueType>::emplace_before_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse)
+typename SLinkedList<ValueType>::node_type* SLinkedList<ValueType>::insert_node_before(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse)
 {
     if (!node) {
         throw std::invalid_argument{"Non-empty list pointer can't be null."};
@@ -73,11 +74,12 @@ typename SLinkedList<ValueType>::node_type* SLinkedList<ValueType>::emplace_befo
 
     using std::swap;
     swap(node->data, new_node->data);
-    return emplace_after_node(node, new_node, is_reverse);
+    return insert_node_after(node, new_node, is_reverse);
 }
 
+/* Helper function that takes a new node and inserts it before an existing node in the list. */
 template<typename ValueType>
-typename SLinkedList<ValueType>::node_type* SLinkedList<ValueType>::emplace_after_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse)
+typename SLinkedList<ValueType>::node_type* SLinkedList<ValueType>::insert_node_after(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse)
 {
     if (!node) {
         throw std::invalid_argument{"Non-empty list pointer can't be null."};
@@ -93,12 +95,16 @@ typename SLinkedList<ValueType>::node_type* SLinkedList<ValueType>::emplace_afte
     return node->next.get();
 }
 
+/* Mergesort function in the base class calls this function, which calls whichever merge_helper function was
+   compiled using SFINAE. */
 template<typename ValueType>
 void SLinkedList<ValueType>::merge(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size)
 {
     merge_helper(left_owner, right_raw, right_size);
 }
 
+/* Helper function that merges two sublists (mostly) in-place. Does make a few moves because of the lack of prev pointers
+   in a singly-linked list. */
 template<typename ValueType>
 template<typename T, std::enable_if_t<supports_less_than<T>::value, int>>
 void SLinkedList<ValueType>::merge_helper(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size)
@@ -138,6 +144,7 @@ void SLinkedList<ValueType>::merge_helper(std::unique_ptr<node_type>& left_owner
     }
 }
 
+/* Helper function that removes a node from the list. */
 template<typename ValueType>
 typename SLinkedList<ValueType>::node_type* SLinkedList<ValueType>::delete_node(node_type* node, bool is_reverse)
 {

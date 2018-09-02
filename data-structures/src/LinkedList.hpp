@@ -30,7 +30,7 @@ protected:
         ValueType data;
         std::unique_ptr<ListNode> next = std::unique_ptr<ListNode>(nullptr);
 
-        template<typename... Args, std::enable_if_t<std::is_constructible_v<ValueType, Args&&...>>>
+        template<typename... Args, typename = std::enable_if_t<std::is_constructible_v<ValueType, Args&&...>>>
         explicit ListNode(Args&&... args) : data{std::forward<Args>(args)...} { }
         explicit ListNode(const ValueType& data) : data{data} { }
         explicit ListNode(ValueType&& data) : data{std::forward<ValueType>(data)} { }
@@ -43,7 +43,7 @@ protected:
         std::unique_ptr<ListNode> next = std::unique_ptr<ListNode>(nullptr);
         ListNode* prev = nullptr;
 
-        template<typename... Args, std::enable_if_t<std::is_constructible_v<ValueType, Args&&...>>>
+        template<typename... Args, typename = std::enable_if_t<std::is_constructible_v<ValueType, Args&&...>>>
         explicit ListNode(Args&&... args) : data{std::forward<Args>(args)...} { }
         explicit ListNode(const ValueType& data) : data{data} { }
         explicit ListNode(ValueType&& data) : data{std::forward<ValueType>(data)} { }
@@ -77,8 +77,9 @@ protected:
 
     template<typename... Args> void emplace_empty(Args&&... args);
     node_type* find_sorted_position(const value_type& val);
-    virtual node_type* emplace_before_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse) = 0;
-    virtual node_type* emplace_after_node(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse) = 0;
+    virtual node_type* insert_node_before(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse) = 0;
+    virtual node_type* insert_node_after(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse) = 0;
+
     void mergesort(std::unique_ptr<node_type>& left_owner, size_type size);
     virtual void merge(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size) = 0;
 
@@ -113,12 +114,16 @@ public:
     template<typename... Args> node_iterator& emplace_after(node_iterator& iter, Args&&... args);
     template<typename... Args> void emplace_sorted(Args&&... args);
 
-    void push_front(const value_type& val) { iterator iter{head.get()}; insert_before(iter, val); }
-    void push_front(value_type&& val) { iterator iter{head.get()}; insert_before(iter, std::forward<value_type>(val)); }
-    void push_back(const value_type& val) { iterator iter{tail}; insert_after(iter, val); }
-    void push_back(value_type&& val) { iterator iter{tail}; insert_after(iter, std::forward<value_type>(val)); }
-    virtual void pop_front() { delete_node(head.get(), false); }
-    virtual void pop_back() { delete_node(tail, false); }
+    void push_front(const value_type& val) { emplace_front(val); }
+    void push_front(value_type&& val) { emplace_front(std::forward<value_type>(val)); }
+    void push_back(const value_type& val) { emplace_back(val); }
+    void push_back(value_type&& val) { emplace_back(std::forward<value_type>(val)); }
+
+    template<typename... Args> void emplace_front(Args&&... args) { iterator iter{head.get()}; emplace_before(iter, std::forward<Args>(args)...); }
+    template<typename... Args> void emplace_back(Args&&... args) { iterator iter{tail}; emplace_after(iter, std::forward<Args>(args)...); }
+
+    void pop_front() { delete_node(head.get(), false); }
+    void pop_back() { delete_node(tail, false); }
 
     iterator find(const value_type& val) const noexcept;
     size_type count(const value_type& val) const noexcept;
@@ -266,7 +271,7 @@ typename LinkedList<LinkageType, ValueType>::node_iterator& LinkedList<LinkageTy
         iter.node = head.get();
     } else {
         auto new_node = std::make_unique<node_type>(std::forward<Args>(args)...);
-        iter.node = emplace_before_node(iter.node, new_node, iter.is_reverse());
+        iter.node = insert_node_before(iter.node, new_node, iter.is_reverse());
     }
 
     return iter;
@@ -282,7 +287,7 @@ typename LinkedList<LinkageType, ValueType>::node_iterator& LinkedList<LinkageTy
         iter.node = head.get();
     } else {
         auto new_node = std::make_unique<node_type>(std::forward<Args>(args)...);
-        iter.node = emplace_after_node(iter.node, new_node, iter.is_reverse());
+        iter.node = insert_node_after(iter.node, new_node, iter.is_reverse());
     }
 
     return iter;
@@ -301,7 +306,7 @@ void LinkedList<LinkageType, ValueType>::emplace_sorted(Args&&... args)
     sort();    // won't sort if already sorted
     auto new_node = std::make_unique<node_type>(std::forward<Args>(args)...);
     auto position = find_sorted_position(new_node->data);
-    position ? emplace_before_node(position, new_node, false) : emplace_after_node(tail, new_node, false);
+    position ? insert_node_before(position, new_node, false) : insert_node_after(tail, new_node, false);
     srtd = true;
 }
 

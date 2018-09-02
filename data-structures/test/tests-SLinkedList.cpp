@@ -612,3 +612,62 @@ TEST_CASE("SLinkedList sort function works as expected")
         REQUIRE(std::is_sorted(slist.begin(), slist.end()));
     }
 }
+
+struct A
+{
+    int x;
+    int y;
+};
+
+TEST_CASE("SLinkedList can hold objects that cannot be sorted", "[SLinkedList]")
+{
+    SLinkedList<A> dlist;
+    REQUIRE_THROWS_WITH(dlist.sort(), Catch::Contains("cannot be sorted"));
+}
+
+template<typename T>
+struct NonCopyable
+{
+    T x;
+    T y;
+    explicit NonCopyable(T x = {}, T y = {}) : x{x}, y{y} { }
+    NonCopyable(const NonCopyable& other) = delete;
+    NonCopyable& operator=(const NonCopyable& other) = delete;
+    NonCopyable(NonCopyable&& other) noexcept : x{std::move(other.x)}, y{std::move(other.y)} { }
+    NonCopyable& operator=(NonCopyable&& other) noexcept
+    {
+        using std::swap;
+        swap(x, other.x);
+        swap(y, other.y);
+        return *this;
+    }
+    ~NonCopyable() = default;
+    friend bool operator<=(const NonCopyable& lhs, const NonCopyable& rhs)
+    {
+        return lhs.x <= rhs.x;
+    }
+};
+
+TEST_CASE("DLinkedList can hold non-copyable and non-movable objects", "[DLinkedList]")
+{
+    SECTION("DLinkedList can hold non-copyable objects")
+    {
+        using no_copy = NonCopyable<int>;
+        SLinkedList <no_copy> dlist;
+        dlist.emplace_back(1, 2);
+        dlist.emplace_back(3, 4);
+        dlist.emplace_front(5, 6);
+        REQUIRE(dlist.size() == 3);
+        auto it = dlist.begin();
+        REQUIRE(it->x == 5);
+        REQUIRE(it->y == 6);
+        ++it;
+        REQUIRE(it->x == 1);
+        REQUIRE(it->y == 2);
+        ++it;
+        REQUIRE(it->x == 3);
+        REQUIRE(it->y == 4);
+        dlist.sort();
+    }
+}
+

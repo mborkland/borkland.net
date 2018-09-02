@@ -17,7 +17,7 @@ std::ostream& operator<<(std::ostream& os, const Color& color) {
     if (color == Color::red) {
         os << "R";
     } else {
-        os << "B";
+        os << "NonCopyable";
     }
 
     return os;
