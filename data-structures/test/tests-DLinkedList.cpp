@@ -622,7 +622,7 @@ TEST_CASE("DLinkedList sort function works as expected")
     {
         auto dlist = fill_list_with_random_values();
         REQUIRE_FALSE(std::is_sorted(dlist.begin(), dlist.end()));
-        dlist.sort();
+        bork_lib::list_sort(dlist);
         REQUIRE(std::is_sorted(dlist.begin(), dlist.end()));
         REQUIRE(std::is_sorted(dlist.rbegin(), dlist.rend(), [&](auto elem1, auto elem2){ return elem1 > elem2; }));
     }
@@ -717,7 +717,12 @@ struct A
 TEST_CASE("DLinkedList can hold objects that cannot be sorted", "[DLinkedList]")
 {
     DLinkedList<A> dlist;
-    REQUIRE_THROWS_WITH(dlist.sort(), Catch::Contains("cannot be sorted"));
+    A a1{3, 4};
+    A a2{5, 6};
+    dlist.push_back(a1);
+    dlist.push_back(a2);
+    REQUIRE(dlist.front().x == 3);
+    REQUIRE(dlist.front().y == 4);
 }
 
 template<typename T>
@@ -796,7 +801,7 @@ TEST_CASE("DLinkedList can hold non-copyable and non-movable objects", "[DLinked
         ++it;
         REQUIRE(it->x == 3);
         REQUIRE(it->y == 4);
-        dlist.sort();
+        bork_lib::list_sort(dlist);
     }
 
     SECTION("DLinkedList can hold non-moveable objects")
@@ -816,7 +821,7 @@ TEST_CASE("DLinkedList can hold non-copyable and non-movable objects", "[DLinked
         ++it;
         REQUIRE(it->x == 3);
         REQUIRE(it->y == 4);
-        dlist.sort();
+        bork_lib::list_sort(dlist);
     }
 
     SECTION("DLinkedList can hold objects that are both non-copyable and non-moveable")
@@ -836,6 +841,6 @@ TEST_CASE("DLinkedList can hold non-copyable and non-movable objects", "[DLinked
         ++it;
         REQUIRE(it->x == 3);
         REQUIRE(it->y == 4);
-        dlist.sort();
+        bork_lib::list_sort(dlist);
     }
 }

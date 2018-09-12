@@ -3,13 +3,12 @@
 
 #include <stdexcept>
 #include <utility>
+#include "Linkage.hpp"
 
 namespace bork_lib
 {
 
-class SingleLinkage;
-class DoubleLinkage;
-template<typename L, typename V> class LinkedList;
+template<Linkage L, typename V> class LinkedList;
 template<typename V> class DLinkedList;
 template<typename V> class SLinkedList;
 template<typename B, typename K, typename V> class BinarySearchTree;
@@ -54,7 +53,7 @@ public:
     }
     virtual ~NodeIterator() = default;
 
-    template<typename L, typename V> friend class LinkedList;
+    template<Linkage L, typename V> friend class LinkedList;
     friend class DLinkedList<value_type>;
     friend class SLinkedList<value_type>;
     template<typename B, typename K, typename V> friend class BinarySearchTree;
@@ -99,7 +98,7 @@ public:
     }
     virtual ~ConstNodeIterator() = default;
 
-    template<typename L, typename V> friend class LinkedList;
+    template<Linkage L, typename V> friend class LinkedList;
     template<typename V> friend class DLinkedList;
     template<typename V> friend class SLinkedList;
     template<typename B, typename K, typename V> friend class BinarySearchTree;
@@ -108,10 +107,10 @@ public:
 };
 
 template<typename ValueType>
-class ListIterator : public NodeIterator<typename LinkedList<DoubleLinkage, ValueType>::node_type, ValueType>
+class ListIterator : public NodeIterator<typename LinkedList<Linkage::DoubleLinkage, ValueType>::node_type, ValueType>
 {
     bool is_reverse() override { return false; }
-    using node_type = typename LinkedList<DoubleLinkage, ValueType>::node_type;
+    using node_type = typename LinkedList<Linkage::DoubleLinkage, ValueType>::node_type;
     using NodeIterator<node_type, ValueType>::NodeIterator;
     using NodeIterator<node_type, ValueType>::node;
 public:
@@ -146,10 +145,10 @@ public:
 };
 
 template<typename ValueType>
-class ConstListIterator : public ConstNodeIterator<typename LinkedList<DoubleLinkage, ValueType>::node_type, ValueType>
+class ConstListIterator : public ConstNodeIterator<typename LinkedList<Linkage::DoubleLinkage, ValueType>::node_type, ValueType>
 {
     bool is_reverse() override { return false; }
-    using node_type = typename LinkedList<DoubleLinkage, ValueType>::node_type;
+    using node_type = typename LinkedList<Linkage::DoubleLinkage, ValueType>::node_type;
     using ConstNodeIterator<node_type, ValueType>::ConstNodeIterator;
     using ConstNodeIterator<node_type, ValueType>::node;
 public:
@@ -184,10 +183,10 @@ public:
 };
 
 template<typename ValueType>
-class ReverseListIterator : public NodeIterator<typename LinkedList<DoubleLinkage, ValueType>::node_type, ValueType>
+class ReverseListIterator : public NodeIterator<typename LinkedList<Linkage::DoubleLinkage, ValueType>::node_type, ValueType>
 {
     bool is_reverse() override { return true; }
-    using node_type = typename LinkedList<DoubleLinkage, ValueType>::node_type;
+    using node_type = typename LinkedList<Linkage::DoubleLinkage, ValueType>::node_type;
     using NodeIterator<node_type, ValueType>::NodeIterator;
     using NodeIterator<node_type, ValueType>::node;
 public:
@@ -222,10 +221,10 @@ public:
 };
 
 template<typename ValueType>
-class ConstReverseListIterator : public ConstNodeIterator<typename LinkedList<DoubleLinkage, ValueType>::node_type, ValueType>
+class ConstReverseListIterator : public ConstNodeIterator<typename LinkedList<Linkage::DoubleLinkage, ValueType>::node_type, ValueType>
 {
     bool is_reverse() override { return true; }
-    using node_type = typename LinkedList<DoubleLinkage, ValueType>::node_type;
+    using node_type = typename LinkedList<Linkage::DoubleLinkage, ValueType>::node_type;
     using ConstNodeIterator<node_type, ValueType>::ConstNodeIterator;
     using ConstNodeIterator<node_type, ValueType>::node;
 public:
@@ -260,10 +259,10 @@ public:
 };
 
 template<typename ValueType>
-class ForwardListIterator : public NodeIterator<typename LinkedList<SingleLinkage, ValueType>::node_type, ValueType>
+class ForwardListIterator : public NodeIterator<typename LinkedList<Linkage::SingleLinkage, ValueType>::node_type, ValueType>
 {
     bool is_reverse() override { return false; }
-    using node_type = typename LinkedList<SingleLinkage, ValueType>::node_type;
+    using node_type = typename LinkedList<Linkage::SingleLinkage, ValueType>::node_type;
     using NodeIterator<node_type, ValueType>::NodeIterator;
     using NodeIterator<node_type, ValueType>::node;
 public:
@@ -293,10 +292,10 @@ public:
 };
 
 template<typename ValueType>
-class ConstForwardListIterator : public ConstNodeIterator<typename LinkedList<SingleLinkage, ValueType>::node_type, ValueType>
+class ConstForwardListIterator : public ConstNodeIterator<typename LinkedList<Linkage::SingleLinkage, ValueType>::node_type, ValueType>
 {
     bool is_reverse() override { return false; }
-    using node_type = typename LinkedList<SingleLinkage, ValueType>::node_type;
+    using node_type = typename LinkedList<Linkage::SingleLinkage, ValueType>::node_type;
     using ConstNodeIterator<node_type, ValueType>::ConstNodeIterator;
     using ConstNodeIterator<node_type, ValueType>::node;
 public:
