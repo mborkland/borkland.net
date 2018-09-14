@@ -52,6 +52,7 @@ protected:
     virtual node_type* insert_node_after(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse) = 0;
 
     virtual node_type* delete_node(node_type* node, bool is_reverse) = 0;
+    void delete_error_check();
     node_type* search_front(const value_type& val) const noexcept;
     template<typename InputIterator> void construct_from_iterator_range(InputIterator begin, InputIterator end);
 
@@ -256,6 +257,14 @@ typename LinkedList<LinkageType, ValueType>::node_type* LinkedList<LinkageType, 
     return nullptr;
 }
 
+template<Linkage LinkageType, typename ValueType>
+void LinkedList<LinkageType, ValueType>::delete_error_check()
+{
+    if (empty()) {
+        throw std::out_of_range{"Can't delete from empty list."};
+    }
+}
+
 /* Helper function that returns a pointer to the first node with the value specified. */
 template<Linkage LinkageType, typename ValueType>
 typename LinkedList<LinkageType, ValueType>::node_type* LinkedList<LinkageType, ValueType>::search_front(const value_type& val) const noexcept
@@ -382,11 +391,8 @@ typename LinkedList<LinkageType, ValueType>::size_type LinkedList<LinkageType, V
 template<Linkage LinkageType, typename ValueType>
 typename LinkedList<LinkageType, ValueType>::iterator LinkedList<LinkageType, ValueType>::erase(iterator iter)
 {
-    if (empty()) {
-        throw std::out_of_range{"Can't delete from empty list."};
-    }
-
-    iter.node = delete_node(iter.node, iter.is_reverse());
+    delete_error_check();
+    iter.node = delete_node(iter.node, false);
     return iter;
 }
 

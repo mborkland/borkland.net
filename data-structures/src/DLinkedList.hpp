@@ -38,6 +38,7 @@ private:
     using LinkedList<Linkage::DoubleLinkage, value_type>::sz;
     using LinkedList<Linkage::DoubleLinkage, value_type>::LinkedList;
     using LinkedList<Linkage::DoubleLinkage, value_type>::construct_from_iterator_range;
+    using LinkedList<Linkage::DoubleLinkage, value_type>::delete_error_check;
 
     node_type* insert_node_before(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse) override;
     node_type* insert_node_after(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse) override;
@@ -53,6 +54,9 @@ public:
     ~DLinkedList() = default;
     DLinkedList& operator=(const DLinkedList<value_type>& other) = default;
     DLinkedList& operator=(DLinkedList<value_type>&& other) noexcept = default;
+
+    reverse_iterator erase(reverse_iterator iter);
+    const_reverse_iterator erase(const_reverse_iterator iter) { return static_cast<const_reverse_iterator>(erase(static_cast<reverse_iterator>(iter))); }
 
     friend void list_sort(LinkedList<Linkage::DoubleLinkage, ValueType>& linked_list);
     friend void list_mergesort(std::unique_ptr<node_type>& left_owner, size_type size);
@@ -148,6 +152,15 @@ typename DLinkedList<ValueType>::node_type* DLinkedList<ValueType>::delete_node(
 
     --sz;
     return return_node;
+}
+
+/* Public function that erases a node pointed to by a reverse iterator. */
+template<typename ValueType>
+typename DLinkedList<ValueType>::reverse_iterator DLinkedList<ValueType>::erase(reverse_iterator iter)
+{
+    delete_error_check();
+    iter.node = delete_node(iter.node, true);
+    return iter;
 }
 
 }  // end namespace
