@@ -28,7 +28,6 @@ public:
     using LinkedList<Linkage::SingleLinkage, value_type>::push_back;
     
 private:
-    using node_iterator = typename LinkedList<Linkage::SingleLinkage, value_type>::node_iterator;
     using node_type = typename LinkedList<Linkage::SingleLinkage, value_type>::node_type;
     using LinkedList<Linkage::SingleLinkage, value_type>::head;
     using LinkedList<Linkage::SingleLinkage, value_type>::tail;
@@ -55,7 +54,6 @@ public:
 
     friend class ForwardListIterator<value_type>;
     friend class ConstForwardListIterator<value_type>;
-    friend class NodeIterator<node_type, value_type>;
 };
 
 /* Helper function that takes a new node and inserts it before an existing node in the list. */

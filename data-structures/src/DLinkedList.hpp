@@ -27,10 +27,14 @@ public:
     using const_iterator = typename LinkedList<Linkage::DoubleLinkage, value_type>::const_iterator;
     using reverse_iterator = ReverseListIterator<value_type>;
     using const_reverse_iterator = ConstReverseListIterator<value_type>;
+    using LinkedList<Linkage::DoubleLinkage, value_type>::insert_before;
+    using LinkedList<Linkage::DoubleLinkage, value_type>::insert_after;
+    using LinkedList<Linkage::DoubleLinkage, value_type>::emplace_before;
+    using LinkedList<Linkage::DoubleLinkage, value_type>::emplace_after;
+    using LinkedList<Linkage::DoubleLinkage, value_type>::erase;
     using LinkedList<Linkage::DoubleLinkage, value_type>::push_back;
 
 private:
-    using node_iterator = typename LinkedList<Linkage::DoubleLinkage, value_type>::node_iterator;
     using node_type = typename LinkedList<Linkage::DoubleLinkage, value_type>::node_type;
     using LinkedList<Linkage::DoubleLinkage, value_type>::head;
     using LinkedList<Linkage::DoubleLinkage, value_type>::tail;
@@ -39,6 +43,7 @@ private:
     using LinkedList<Linkage::DoubleLinkage, value_type>::LinkedList;
     using LinkedList<Linkage::DoubleLinkage, value_type>::construct_from_iterator_range;
     using LinkedList<Linkage::DoubleLinkage, value_type>::delete_error_check;
+    using LinkedList<Linkage::DoubleLinkage, value_type>::generic_emplace;
 
     node_type* insert_node_before(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse) override;
     node_type* insert_node_after(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse) override;
@@ -55,6 +60,20 @@ public:
     DLinkedList& operator=(const DLinkedList<value_type>& other) = default;
     DLinkedList& operator=(DLinkedList<value_type>&& other) noexcept = default;
 
+    reverse_iterator insert_before(reverse_iterator iter, const value_type& val) { return emplace_before(iter, val); }
+    const_reverse_iterator insert_before(const_reverse_iterator iter, const value_type& val) { return emplace_before(iter, val); }
+    reverse_iterator insert_before(reverse_iterator iter, value_type&& val) { return emplace_before(iter, std::forward<value_type>(val)); }
+    const_reverse_iterator insert_before(const_reverse_iterator iter, value_type&& val) { return emplace_before(iter, std::forward<value_type>(val)); }
+    reverse_iterator insert_after(reverse_iterator iter, const value_type& val) { return emplace_after(iter, val); }
+    const_reverse_iterator insert_after(const_reverse_iterator iter, const value_type& val) { return emplace_after(iter, val); }
+    reverse_iterator insert_after(reverse_iterator iter, value_type&& val) { return emplace_after(iter, std::forward<value_type>(val)); }
+    const_reverse_iterator insert_after(const_reverse_iterator iter, value_type&& val) { return emplace_after(iter, std::forward<value_type>(val)); }
+    
+    template<typename... Args> reverse_iterator emplace_before(reverse_iterator iter, Args&&... args);
+    template<typename... Args> const_reverse_iterator emplace_before(const_reverse_iterator iter, Args&&... args);
+    template<typename... Args> reverse_iterator emplace_after(reverse_iterator iter, Args&&... args);
+    template<typename... Args> const_reverse_iterator emplace_after(const_reverse_iterator iter, Args&&... args);
+    
     reverse_iterator erase(reverse_iterator iter);
     const_reverse_iterator erase(const_reverse_iterator iter) { return static_cast<const_reverse_iterator>(erase(static_cast<reverse_iterator>(iter))); }
 
@@ -73,7 +92,6 @@ public:
     friend class ConstListIterator<value_type>;
     friend class ReverseListIterator<value_type>;
     friend class ConstReverseListIterator<value_type>;
-    friend class NodeIterator<node_type, value_type>;
 };
 
 /* Helper function that takes a new node and inserts it before an existing node in the list. */
@@ -152,6 +170,38 @@ typename DLinkedList<ValueType>::node_type* DLinkedList<ValueType>::delete_node(
 
     --sz;
     return return_node;
+}
+
+/* Public function that inserts a value in-place before a node in the list. */
+template<typename ValueType>
+template<typename... Args>
+typename DLinkedList<ValueType>::reverse_iterator DLinkedList<ValueType>::emplace_before(reverse_iterator iter, Args&&... args)
+{
+    return generic_emplace(iter, this, &DLinkedList<ValueType>::insert_node_before, true, std::forward<Args>(args)...);
+}
+
+/* Public function that inserts a value in-place before a node in the list. */
+template<typename ValueType>
+template<typename... Args>
+typename DLinkedList<ValueType>::const_reverse_iterator DLinkedList<ValueType>::emplace_before(const_reverse_iterator iter, Args&&... args)
+{
+    return static_cast<const_reverse_iterator>(emplace_before(static_cast<reverse_iterator>(iter), std::forward<Args>(args)...));
+}
+
+/* Public function that inserts a value in-place after a node in the list. */
+template<typename ValueType>
+template<typename... Args>
+typename DLinkedList<ValueType>::reverse_iterator DLinkedList<ValueType>::emplace_after(reverse_iterator iter, Args&&... args)
+{
+    return generic_emplace(iter, this, &DLinkedList<ValueType>::insert_node_after, true, std::forward<Args>(args)...);
+}
+
+/* Public function that inserts a value in-place after a node in the list. */
+template<typename ValueType>
+template<typename... Args>
+typename DLinkedList<ValueType>::const_reverse_iterator DLinkedList<ValueType>::emplace_after(const_reverse_iterator iter, Args&&... args)
+{
+    return static_cast<const_reverse_iterator>(emplace_after(static_cast<reverse_iterator>(iter), std::forward<Args>(args)...));
 }
 
 /* Public function that erases a node pointed to by a reverse iterator. */

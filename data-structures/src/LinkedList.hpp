@@ -35,8 +35,6 @@ public:
     using const_iterator = std::conditional_t<LinkageType == Linkage::SingleLinkage,
                            ConstForwardListIterator<ValueType>, ConstListIterator<ValueType>>;
 
-    using node_iterator = NodeIterator<node_type, value_type>;
-
 protected:
     std::unique_ptr<node_type> head = std::unique_ptr<node_type>(nullptr);
     node_type* tail = nullptr;
@@ -48,13 +46,16 @@ protected:
 
     template<typename... Args> void emplace_empty(Args&&... args);
     node_type* find_sorted_position(const value_type& val);
-    virtual node_type* insert_node_before(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse) = 0;
-    virtual node_type* insert_node_after(node_type *node, std::unique_ptr<node_type> &new_node, bool is_reverse) = 0;
+
+    virtual node_type* insert_node_before(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse) = 0;
+    virtual node_type* insert_node_after(node_type* node, std::unique_ptr<node_type>& new_node, bool is_reverse) = 0;
 
     virtual node_type* delete_node(node_type* node, bool is_reverse) = 0;
     void delete_error_check();
     node_type* search_front(const value_type& val) const noexcept;
     template<typename InputIterator> void construct_from_iterator_range(InputIterator begin, InputIterator end);
+    template<typename GenericIterator, typename ObjectPointerType, typename InsertFuncPointerType, typename... Args>
+    GenericIterator generic_emplace(GenericIterator iter, ObjectPointerType object_pointer, InsertFuncPointerType insert_func_pointer, bool is_reverse, Args&&... args);
 
 public:
     // construction, assignment, and destruction
@@ -131,7 +132,6 @@ public:
     friend class ConstReverseListIterator<value_type>;
     friend class ForwardListIterator<value_type>;
     friend class ConstForwardListIterator<value_type>;
-    friend class NodeIterator<node_type, value_type>;
 };
 
 template<typename ValueType>
@@ -157,8 +157,6 @@ public:
     friend class SLinkedList<ValueType>;
     friend class ForwardListIterator<ValueType>;
     friend class ConstForwardListIterator<ValueType>;
-    friend class NodeIterator<ListNode<Linkage::SingleLinkage, ValueType>, ValueType>;
-    friend class ConstNodeIterator<ListNode<Linkage::SingleLinkage, ValueType>, ValueType>;
 };
 
 template<typename ValueType>
@@ -187,8 +185,6 @@ public:
     friend class ConstListIterator<ValueType>;
     friend class ReverseListIterator<ValueType>;
     friend class ConstReverseListIterator<ValueType>;
-    friend class NodeIterator<ListNode<Linkage::DoubleLinkage, ValueType>, ValueType>;
-    friend class ConstNodeIterator<ListNode<Linkage::DoubleLinkage, ValueType>, ValueType>;
 };
 
 
@@ -291,20 +287,28 @@ void LinkedList<LinkageType, ValueType>::construct_from_iterator_range(InputIter
     srtd = std::is_sorted(begin, end);
 }
 
-/* Public function that inserts a value in-place before a node in the list. */
 template<Linkage LinkageType, typename ValueType>
-template<typename... Args>
-typename LinkedList<LinkageType, ValueType>::iterator LinkedList<LinkageType, ValueType>::emplace_before(iterator iter, Args&&... args)
+template<typename GenericIterator, typename ObjectPointerType, typename InsertFuncPointerType, typename... Args>
+GenericIterator LinkedList<LinkageType, ValueType>::generic_emplace(GenericIterator iter, ObjectPointerType object_pointer,
+        InsertFuncPointerType insert_func_pointer, bool is_reverse, Args&&... args)
 {
     if (empty()) {
         emplace_empty(std::forward<Args>(args)...);
         iter.node = head.get();
     } else {
         auto new_node = std::make_unique<node_type>(std::forward<Args>(args)...);
-        iter.node = insert_node_before(iter.node, new_node, iter.is_reverse());
+        iter.node = (object_pointer->*insert_func_pointer)(iter.node, new_node, is_reverse);
     }
 
     return iter;
+}
+
+/* Public function that inserts a value in-place before a node in the list. */
+template<Linkage LinkageType, typename ValueType>
+template<typename... Args>
+typename LinkedList<LinkageType, ValueType>::iterator LinkedList<LinkageType, ValueType>::emplace_before(iterator iter, Args&&... args)
+{
+    return generic_emplace(iter, this, &LinkedList<LinkageType, ValueType>::insert_node_before, false, std::forward<Args>(args)...);
 }
 
 /* Public function that inserts a value in-place before a node in the list. */
@@ -320,15 +324,7 @@ template<Linkage LinkageType, typename ValueType>
 template<typename... Args>
 typename LinkedList<LinkageType, ValueType>::iterator LinkedList<LinkageType, ValueType>::emplace_after(iterator iter, Args&&... args)
 {
-    if (empty()) {
-        emplace_empty(std::forward<Args>(args)...);
-        iter.node = head.get();
-    } else {
-        auto new_node = std::make_unique<node_type>(std::forward<Args>(args)...);
-        iter.node = insert_node_after(iter.node, new_node, iter.is_reverse());
-    }
-
-    return iter;
+    return generic_emplace(iter, this, &LinkedList<LinkageType, ValueType>::insert_node_after, false, std::forward<Args>(args)...);
 }
 
 /* Public function that inserts a value in-place after a node in the list. */

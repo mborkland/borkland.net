@@ -52,7 +52,7 @@ public:
     ListIterator<value_type>& operator=(const ConstReverseListIterator<value_type>& other) { node = other.node; return *this; }
     ~ListIterator() = default;
 
-    reference operator*() { return node->data; }
+    reference operator*() const { return node->data; }
     pointer operator->() { return &(node->data); }
     ListIterator<value_type>& operator++() { node = node->next.get(); return *this; }
     ListIterator<value_type>& operator--() { node = node->prev; return *this; }
@@ -104,7 +104,7 @@ public:
     ConstListIterator<value_type>& operator=(const ConstReverseListIterator<value_type>& other) { node = other.node; return *this; }
     ~ConstListIterator() = default;
 
-    const_reference operator*() { return node->data; }
+    const_reference operator*() const { return node->data; }
     const_pointer operator->() { return &(node->data); }
     ConstListIterator<value_type>& operator++() { node = node->next.get(); return *this; }
     ConstListIterator<value_type>& operator--() { node = node->prev; return *this; }
@@ -156,7 +156,7 @@ public:
     ReverseListIterator<value_type>& operator=(const ConstReverseListIterator<value_type>& other) { node = other.node; return *this; }
     ~ReverseListIterator() = default;
 
-    reference operator*() { return node->data; }
+    reference operator*() const { return node->data; }
     pointer operator->() { return &(node->data); }
     ReverseListIterator<value_type>& operator++() { node = node->prev; return *this; }
     ReverseListIterator<value_type>& operator--() { node = node->next.get(); return *this; }
@@ -208,7 +208,7 @@ public:
     ConstReverseListIterator<value_type>& operator=(const ConstReverseListIterator<value_type>& other) { node = other.node; return *this; }
     ~ConstReverseListIterator() = default;
 
-    const_reference operator*() { return node->data; }
+    const_reference operator*() const { return node->data; }
     const_pointer operator->() { return &(node->data); }
     ConstReverseListIterator<value_type>& operator++() { node = node->prev; return *this; }
     ConstReverseListIterator<value_type>& operator--() { node = node->next.get(); return *this; }
@@ -256,10 +256,10 @@ public:
     ForwardListIterator<value_type>& operator=(const ConstForwardListIterator<value_type>& other) { node = other.node; return *this; }
     ~ForwardListIterator() = default;
 
-    reference operator*() { return node->data; }
+    reference operator*() const { return node->data; }
     pointer operator->() { return &(node->data); }
-    ForwardListIterator<value_type>& operator++() override { node = node->next.get(); return *this; }
-    ForwardListIterator<value_type>& operator--() override { throw std::logic_error("Cannot decrement forward iterator."); }
+    ForwardListIterator<value_type>& operator++() { node = node->next.get(); return *this; }
+    ForwardListIterator<value_type>& operator--() { throw std::logic_error("Cannot decrement forward iterator."); }
     const ForwardListIterator<value_type> operator++(int)
     { 
         ForwardListIterator<value_type> temp{*this};
@@ -299,10 +299,10 @@ public:
     ConstForwardListIterator<value_type>& operator=(const ConstForwardListIterator<value_type>& other) { node = other.node; return *this; }
     ~ConstForwardListIterator() = default;
 
-    const_reference operator*() { return node->data; }
+    const_reference operator*() const { return node->data; }
     const_pointer operator->() { return &(node->data); }
-    ConstForwardListIterator<value_type>& operator++() override { node = node->next.get(); return *this; }
-    ConstForwardListIterator<value_type>& operator--() override { throw std::logic_error("Cannot decrement forward iterator."); }
+    ConstForwardListIterator<value_type>& operator++() { node = node->next.get(); return *this; }
+    ConstForwardListIterator<value_type>& operator--() { throw std::logic_error("Cannot decrement forward iterator."); }
     const ConstForwardListIterator<value_type> operator++(int)
     {
         ConstForwardListIterator<value_type> temp{*this};
@@ -386,10 +386,10 @@ public:
     tree_iterator& operator=(const const_reverse_tree_iterator& other) { node = other.node; return *this; }
     ~TreeIterator() = default;
 
-    reference operator*() { return node->data; }
+    reference operator*() const { return node->data; }
     pointer operator->() { return &(node->data); }
-    tree_iterator& operator++() override { node = succ<NodeType>(node); return *this; }
-    tree_iterator& operator--() override { node = pred<NodeType>(node); return *this; }
+    tree_iterator& operator++() { node = succ<NodeType>(node); return *this; }
+    tree_iterator& operator--() { node = pred<NodeType>(node); return *this; }
     const tree_iterator operator++(int)
     {
         tree_iterator temp{*this};
@@ -441,10 +441,10 @@ public:
     const_tree_iterator& operator=(const const_reverse_tree_iterator& other) { node = other.node; return *this; }
     ~ConstTreeIterator() = default;
 
-    const_reference operator*() { return node->data; }
+    const_reference operator*() const { return node->data; }
     const_pointer operator->() { return &(node->data); }
-    const_tree_iterator& operator++() override { node = succ<NodeType>(node); return *this; }
-    const_tree_iterator& operator--() override { node = pred<NodeType>(node); return *this; }
+    const_tree_iterator& operator++() { node = succ<NodeType>(node); return *this; }
+    const_tree_iterator& operator--() { node = pred<NodeType>(node); return *this; }
     const const_tree_iterator operator++(int)
     {
         const_tree_iterator temp{*this};
@@ -496,10 +496,10 @@ public:
     reverse_tree_iterator& operator=(const const_reverse_tree_iterator& other) { node = other.node; return *this; }
     ~ReverseTreeIterator() = default;
 
-    reference operator*() { return node->data; }
+    reference operator*() const { return node->data; }
     pointer operator->() { return &(node->data); }
-    reverse_tree_iterator& operator++() override { node = pred<NodeType>(node); return *this; }
-    reverse_tree_iterator& operator--() override { node = succ<NodeType>(node); return *this; }
+    reverse_tree_iterator& operator++() { node = pred<NodeType>(node); return *this; }
+    reverse_tree_iterator& operator--() { node = succ<NodeType>(node); return *this; }
     const reverse_tree_iterator operator++(int)
     {
         reverse_tree_iterator temp{*this};
@@ -553,8 +553,8 @@ public:
 
     reference operator*() { return node->data; }
     pointer operator->() { return &(node->data); }
-    const_reverse_tree_iterator& operator++() override { node = pred<NodeType>(node); return *this; }
-    const_reverse_tree_iterator& operator--() override { node = succ<NodeType>(node); return *this; }
+    const_reverse_tree_iterator& operator++() { node = pred<NodeType>(node); return *this; }
+    const_reverse_tree_iterator& operator--() { node = succ<NodeType>(node); return *this; }
     const const_reverse_tree_iterator operator++(int)
     {
         const_reverse_tree_iterator temp{*this};
