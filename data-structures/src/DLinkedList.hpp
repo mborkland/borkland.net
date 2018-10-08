@@ -1,13 +1,11 @@
 #ifndef DLINKEDLIST_HPP
 #define DLINKEDLIST_HPP
 
-#include <algorithm>
 #include <initializer_list>
 #include <memory>
-#include <stdexcept>
 #include <utility>
 #include "LinkedList.hpp"
-#include "NodeIterator.hpp"
+#include "ListIterator.hpp"
 
 namespace bork_lib
 {

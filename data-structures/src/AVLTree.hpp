@@ -49,10 +49,10 @@ public:
 
     inline int tree_height() const noexcept { return root ? root->balance_info : -1; }  // the height of the tree
 
-    friend class TreeIterator<TreeNode, KeyType, ValueType>;
-    friend class ConstTreeIterator<TreeNode, KeyType, ValueType>;
-    friend class ReverseTreeIterator<TreeNode, KeyType, ValueType>;
-    friend class ConstReverseTreeIterator<TreeNode, KeyType, ValueType>;
+    friend class TreeIterator<TreeNode, int, KeyType, ValueType>;
+    friend class ConstTreeIterator<TreeNode, int, KeyType, ValueType>;
+    friend class ReverseTreeIterator<TreeNode, int, KeyType, ValueType>;
+    friend class ConstReverseTreeIterator<TreeNode, int, KeyType, ValueType>;
     friend TreeNode* succ<TreeNode>(TreeNode* node);
     friend TreeNode* pred<TreeNode>(TreeNode* node);
 };

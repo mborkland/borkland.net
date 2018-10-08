@@ -6,7 +6,7 @@
 #include <iterator>
 #include <memory>
 #include <type_traits>
-#include "NodeIterator.hpp"
+#include "TreeIterator.hpp"
 
 namespace bork_lib
 {
@@ -27,13 +27,20 @@ protected:
     };
 
 public:
-    using iterator = TreeIterator<TreeNode, KeyType, ValueType>;
-    using const_iterator = ConstTreeIterator<TreeNode, KeyType, ValueType>;
-    using reverse_iterator = ReverseTreeIterator<TreeNode, KeyType, ValueType>;
-    using const_reverse_iterator = ConstReverseTreeIterator<TreeNode, KeyType, ValueType>;
-    using node_iterator = NodeIterator<typename BinarySearchTree<BalanceType, KeyType, ValueType>::TreeNode, std::pair<const KeyType, ValueType>>;
     using value_type = std::pair<const KeyType, ValueType>;
+    using key_type = KeyType;
+    using mapped_type = ValueType;
+    using reference = value_type&;
+    using const_reference = const value_type&;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+
+    using iterator = TreeIterator<TreeNode, BalanceType, KeyType, ValueType>;
+    using const_iterator = ConstTreeIterator<TreeNode, BalanceType, KeyType, ValueType>;
+    using reverse_iterator = ReverseTreeIterator<TreeNode, BalanceType, KeyType, ValueType>;
+    using const_reverse_iterator = ConstReverseTreeIterator<TreeNode, BalanceType, KeyType, ValueType>;
 
 protected:
     std::unique_ptr<TreeNode> root = std::unique_ptr<TreeNode>(nullptr);;
@@ -79,7 +86,10 @@ public:
     ValueType& operator[](const KeyType& key);
     const ValueType& operator[](const KeyType& key) const;
     bool erase(const KeyType& key);
-    auto& erase(node_iterator& iter);
+    iterator erase(iterator iter);
+    const_iterator erase(const_iterator iter) { return static_cast<const_iterator>(erase(static_cast<iterator>(iter))); }
+    reverse_iterator erase(reverse_iterator iter) { return static_cast<reverse_iterator>(erase(static_cast<iterator>(iter))); }
+    const_reverse_iterator erase(const_reverse_iterator iter) { return static_cast<const_reverse_iterator>(erase(static_cast<iterator>(iter))); }
     void clear() { root.reset(nullptr); sz = 0; }  // clear the tree
 
     // iterator functions
@@ -92,10 +102,10 @@ public:
     const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator{tree_maximum(root.get())}; }
     const_reverse_iterator crend() const noexcept { return const_reverse_iterator{nullptr}; }
 
-    friend class TreeIterator<TreeNode, KeyType, ValueType>;
-    friend class ConstTreeIterator<TreeNode, KeyType, ValueType>;
-    friend class ReverseTreeIterator<TreeNode, KeyType, ValueType>;
-    friend class ConstReverseTreeIterator<TreeNode, KeyType, ValueType>;
+    friend class TreeIterator<TreeNode, BalanceType, KeyType, ValueType>;
+    friend class ConstTreeIterator<TreeNode, BalanceType, KeyType, ValueType>;
+    friend class ReverseTreeIterator<TreeNode, BalanceType, KeyType, ValueType>;
+    friend class ConstReverseTreeIterator<TreeNode, BalanceType, KeyType, ValueType>;
     friend TreeNode* succ<TreeNode>(TreeNode* node);
     friend TreeNode* pred<TreeNode>(TreeNode* node);
 
@@ -205,8 +215,7 @@ auto BinarySearchTree<BalanceType, KeyType, ValueType>::insert(std::pair<const K
     if (empty()) {
         ++sz;
         root = std::make_unique<TreeNode>(TreeNode{std::forward<std::pair<const KeyType, ValueType>>(keyvalue)});
-        iterator iter {};
-        iter.node = root.get();
+        iterator iter{root.get()};
         return std::pair<iterator, bool>{iter, true};
     }
 
@@ -327,7 +336,8 @@ bool BinarySearchTree<BalanceType, KeyType, ValueType>::erase(const KeyType& key
 /* Erases a node using a NodeIterator. Returns an iterator pointing to the
    successor of the deleted node. */
 template<typename BalanceType, typename KeyType, typename ValueType>
-auto& BinarySearchTree<BalanceType, KeyType, ValueType>::erase(node_iterator& iter)
+typename BinarySearchTree<BalanceType, KeyType, ValueType>::iterator
+BinarySearchTree<BalanceType, KeyType, ValueType>::erase(iterator iter)
 {
     if (empty()) {
         throw std::out_of_range("Can't erase from empty tree.");

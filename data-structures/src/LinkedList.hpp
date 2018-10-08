@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <utility>
 #include "Linkage.hpp"
-#include "NodeIterator.hpp"
+#include "ListIterator.hpp"
 
 namespace bork_lib
 {
@@ -23,10 +23,10 @@ protected:
 
 public:
     using value_type = ValueType;
-    using reference = ValueType&;
-    using const_reference = const ValueType&;
-    using pointer = ValueType*;
-    using const_pointer = const ValueType*;
+    using reference = value_type&;
+    using const_reference = const value_type&;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
 
