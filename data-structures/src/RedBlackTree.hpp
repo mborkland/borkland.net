@@ -1,7 +1,8 @@
 #ifndef REDBLACKTREE_HPP
 #define REDBLACKTREE_HPP
 
-#include <iostream>
+#include <algorithm> // for testing
+#include <iostream> // for testing
 #include <utility>
 #include "BinarySearchTree.hpp"
 
@@ -10,14 +11,20 @@ namespace bork_lib
 
 enum class Color
 {
-    red, black
+    red, black, null
 };
 
 std::ostream& operator<<(std::ostream& os, const Color& color) {
-    if (color == Color::red) {
-        os << "R";
-    } else {
-        os << "NonCopyable";
+    switch (color) {
+        case Color::red :
+            os << 'R';
+            break;
+        case Color::black :
+            os << 'B';
+            break;
+        default :
+            os << 'N';
+            break;
     }
 
     return os;
@@ -27,8 +34,26 @@ template<typename KeyType, typename ValueType>
 class RedBlackTree : public BinarySearchTree<Color, KeyType, ValueType>
 {
 public:
+    using value_type = typename BinarySearchTree<Color, KeyType, ValueType>::value_type;
+    using key_type = typename BinarySearchTree<Color, KeyType, ValueType>::key_type;
+    using mapped_type = typename BinarySearchTree<Color, KeyType, ValueType>::value_type;
+    using reference = typename BinarySearchTree<Color, KeyType, ValueType>::reference;
+    using const_reference = typename BinarySearchTree<Color, KeyType, ValueType>::const_reference;
+    using pointer = typename BinarySearchTree<Color, KeyType, ValueType>::pointer;
+    using const_pointer = typename BinarySearchTree<Color, KeyType, ValueType>::const_pointer;
+    using size_type = typename BinarySearchTree<Color, KeyType, ValueType>::size_type;
+    using difference_type = typename BinarySearchTree<Color, KeyType, ValueType>::difference_type;
+
+    using iterator = typename BinarySearchTree<Color, KeyType, ValueType>::iterator;
+    using const_iterator = typename BinarySearchTree<Color, KeyType, ValueType>::const_iterator;
+    using reverse_iterator = typename BinarySearchTree<Color, KeyType, ValueType>::reverse_iterator;
+    using const_reverse_iterator = typename BinarySearchTree<Color, KeyType, ValueType>::const_reverse_iterator;
+
+    using BinarySearchTree<Color, KeyType, ValueType>::insert;
+    using BinarySearchTree<Color, KeyType, ValueType>::clear;
+
+private:
     using TreeNode = typename BinarySearchTree<Color, KeyType, ValueType>::TreeNode;
-    using node_iterator = NodeIterator<TreeNode, std::pair<const KeyType, ValueType>>;
     using BinarySearchTree<Color, KeyType, ValueType>::root;
     using BinarySearchTree<Color, KeyType, ValueType>::sz;
     using BinarySearchTree<Color, KeyType, ValueType>::clone_tree;
@@ -37,15 +62,13 @@ public:
     using BinarySearchTree<Color, KeyType, ValueType>::tree_minimum;
     using BinarySearchTree<Color, KeyType, ValueType>::single_transplant;
     using BinarySearchTree<Color, KeyType, ValueType>::double_transplant;
-    using BinarySearchTree<Color, KeyType, ValueType>::clear;
-    using BinarySearchTree<Color, KeyType, ValueType>::inorder_print;  // testing function
-
-private:
-    void update(TreeNode* node) { }  // this function not needed in red-black tree
-    void rebalance_insert(TreeNode* node);
-    void rebalance_delete(TreeNode* node);
-    bool rebalance(TreeNode* node);
-    void delete_node(TreeNode* node);
+    
+    void update(TreeNode* node) override { };  // this function not needed in red-black tree
+    void rebalance_insert(TreeNode* node) override;
+    void rebalance_delete(TreeNode* node) override;
+    void delete_node(TreeNode* node) override;
+    void insert_null_leaf(std::unique_ptr<TreeNode>& owner, TreeNode* parent);
+    bool is_black(TreeNode* node) { return node->balance_info == Color::black || node->balance_info == Color::null; }
 
 public:
     // construction, assignment, and destruction
@@ -60,14 +83,21 @@ public:
     RedBlackTree<KeyType, ValueType>& operator=(const RedBlackTree<KeyType, ValueType>& other);  // copy assignment
     RedBlackTree<KeyType, ValueType>& operator=(RedBlackTree<KeyType, ValueType>&& other) noexcept;     // move assignment
 
-    auto insert(std::pair<const KeyType, ValueType>&& keyvalue);
-
-    friend class TreeIterator<Color, KeyType, ValueType>;
-    friend class ConstTreeIterator<Color, KeyType, ValueType>;
-    friend class ReverseTreeIterator<Color, KeyType, ValueType>;
-    friend class ConstReverseTreeIterator<Color, KeyType, ValueType>;
+    friend class TreeIterator<TreeNode, Color, KeyType, ValueType>;
+    friend class ConstTreeIterator<TreeNode, Color, KeyType, ValueType>;
+    friend class ReverseTreeIterator<TreeNode, Color, KeyType, ValueType>;
+    friend class ConstReverseTreeIterator<TreeNode, Color, KeyType, ValueType>;
     friend TreeNode* succ<TreeNode>(TreeNode* node);
     friend TreeNode* pred<TreeNode>(TreeNode* node);
+
+    int tree_height(TreeNode* node)
+    {
+        if (!node || (!node->left && !node->right)) {
+            return 0;
+        }
+
+        return std::max(tree_height(node->left.get()), tree_height(node->right.get())) + 1;
+    }
 };
 
 /* Allows construction of a tree from an iterator range. The iterators
@@ -76,9 +106,8 @@ template<typename KeyType, typename ValueType>
 template<typename InputIterator>
 RedBlackTree<KeyType, ValueType>::RedBlackTree(InputIterator begin, InputIterator end)
 {
-    while (begin != end) {
+    while (begin++ != end) {
         insert({begin->first, begin->second});
-        ++begin;
     }
 }
 
@@ -111,11 +140,16 @@ RedBlackTree<KeyType, ValueType>& RedBlackTree<KeyType, ValueType>::operator=(Re
 template<typename KeyType, typename ValueType>
 void RedBlackTree<KeyType, ValueType>::rebalance_insert(TreeNode* node)
 {
-    while (node->parent->balance_info == Color::red) {
-        auto grandparent = node->parent->parent;  // if node's parent is red, it must have a grandparent
+    if (node == root.get()) {
+        node->balance_info = Color::black;
+        return;
+    }
+
+    while (node->parent && node->parent->balance_info == Color::red) {
+        auto grandparent = node->parent->parent;
         if (node->parent == grandparent->left.get()) { // node's parent is the left child of its parent
             auto uncle = grandparent->right.get();
-            if (uncle->balance_info == Color::red) {   // case 1: change both red siblings to black and grandparent to red
+            if (uncle && uncle->balance_info == Color::red) {   // case 1: change both red siblings to black and grandparent to red
                 node->parent->balance_info = uncle->balance_info = Color::black;
                 grandparent->balance_info = Color::red;
                 node = grandparent;
@@ -132,7 +166,7 @@ void RedBlackTree<KeyType, ValueType>::rebalance_insert(TreeNode* node)
             }
         } else {                                 // node's parent is the right child of its parent
             auto uncle = grandparent->left.get();
-            if (uncle->balance_info == Color::red) {   // case 1: change both red siblings to black and grandparent to red
+            if (uncle && uncle->balance_info == Color::red) {   // case 1: change both red siblings to black and grandparent to red
                 node->parent->balance_info = uncle->balance_info = Color::black;
                 grandparent->balance_info = Color::red;
                 node = grandparent;
@@ -149,17 +183,19 @@ void RedBlackTree<KeyType, ValueType>::rebalance_insert(TreeNode* node)
             }
         }
     }
+
+    root->balance_info = Color::black;
 }
 
 template<typename KeyType, typename ValueType>
 void RedBlackTree<KeyType, ValueType>::rebalance_delete(TreeNode* node)
 {
     // TODO: fix this!!!
-    while (node != root.get() && node->balance_info == Color::black) {
+    while (node != root.get() && is_black(node)) {
         if (node == node->parent->left.get()) {
             auto sibling = node->parent->right.get();
             if (sibling->balance_info == Color::red) {  // case 1: node's sibling is red
-                sibling->balance_info == Color::black;
+                sibling->balance_info = Color::black;
                 sibling->parent->balance_info = Color::red;
                 left_rotate(node->parent);
                 sibling = node->parent->right.get();
@@ -183,24 +219,17 @@ void RedBlackTree<KeyType, ValueType>::rebalance_delete(TreeNode* node)
                 node = root.get();
             }
         } else {
-
+            auto sibling = node->parent->left.get();
+            if (sibling->balance_info == Color::red) { // case 1: node's sibling is red
+                sibling->balance_info = Color::black;
+                sibling->parent->balance_info = Color::red;
+                right_rotate(node->parent);
+                sibling = node->parent->left.get();
+            }
         }
 
         node->balance_info = Color::black;
     }
-}
-
-/* Inserts a node in the tree with the given key-value pair. Redefinition of base class function.
-   The default parameter for color in RBNode is red, since a new node is always red, except for
-   when the first node of the tree is created. The root also needs to be updated to black after
-   rebalancing, so this addition works in that case, as well. */
-template<typename KeyType, typename ValueType>
-auto RedBlackTree<KeyType, ValueType>::insert(std::pair<const KeyType, ValueType>&& keyvalue)
-{
-    auto ret_val = BinarySearchTree<Color, KeyType, ValueType>::insert(
-            std::forward<std::pair<const KeyType, ValueType>>(keyvalue));
-    root->balance_info = Color::black;
-    return ret_val;
 }
 
 /* Deletes a node from the tree. */
@@ -208,7 +237,7 @@ template<typename KeyType, typename ValueType>
 void RedBlackTree<KeyType, ValueType>::delete_node(TreeNode* node)
 {
     --sz;
-    if (node == root && !node->left && !node->right) {  // only one node in the tree
+    if (node == root.get() && sz == 1) {  // only one node in the tree
         clear();
         return;
     }
@@ -216,8 +245,8 @@ void RedBlackTree<KeyType, ValueType>::delete_node(TreeNode* node)
     TreeNode* node_to_rebalance;  // node where rebalancing will begin
     auto original_color = node->balance_info;
     if (!node->left) {  // case 1: no children or only right child
-        node_to_rebalance = node->right.get();
-        single_transplant(node, node->right);
+        node->balance_info = Color::null;
+        node_to_rebalance = node;
     } else if (!node->right) {  // case 2: only left child
         node_to_rebalance = node->left.get();
         single_transplant(node, node->left);
@@ -243,6 +272,12 @@ void RedBlackTree<KeyType, ValueType>::delete_node(TreeNode* node)
         rebalance_delete(node_to_rebalance);
     }
 
+}
+
+template<typename KeyType, typename ValueType>
+void RedBlackTree<KeyType, ValueType>::insert_null_leaf(std::unique_ptr<TreeNode>& owner, TreeNode* parent)
+{
+    owner = std::make_unique<TreeNode>({}, parent, Color::null);
 }
 
 }    // end namespace

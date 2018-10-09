@@ -531,7 +531,7 @@ TEST_CASE("SLinkedList find function works as expected", "[SLinkedList]")
         constexpr int n = 50;
         constexpr int magic_number1 = -8;
         constexpr int magic_number2 = 67;
-        auto slist = fill_list_with_consecutive_values(50);
+        auto slist = fill_list_with_consecutive_values(n);
         auto it1 = slist.find(magic_number1);
         auto it2 = slist.find(magic_number2);
         REQUIRE(it1 == slist.end());

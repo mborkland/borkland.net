@@ -55,8 +55,10 @@ public:
     template<typename InputIterator> DLinkedList(InputIterator begin, InputIterator end) { construct_from_iterator_range(begin, end); }
     DLinkedList(std::initializer_list<value_type> li) : DLinkedList<value_type>{li.begin(), li.end()} { }
     ~DLinkedList() = default;
-    DLinkedList& operator=(const DLinkedList<value_type>& other) = default;
-    DLinkedList& operator=(DLinkedList<value_type>&& other) noexcept = default;
+    DLinkedList& operator=(const DLinkedList<value_type>& other)
+      { return dynamic_cast<DLinkedList&>(LinkedList<Linkage::DoubleLinkage, value_type>::operator=(other)); }
+    DLinkedList& operator=(DLinkedList<value_type>&& other) noexcept
+      { return dynamic_cast<DLinkedList&>(LinkedList<Linkage::DoubleLinkage, value_type>::operator=(std::forward<DLinkedList<value_type>>(other))); }
 
     reverse_iterator insert_before(reverse_iterator iter, const value_type& val) { return emplace_before(iter, val); }
     const_reverse_iterator insert_before(const_reverse_iterator iter, const value_type& val) { return emplace_before(iter, val); }
@@ -74,10 +76,6 @@ public:
     
     reverse_iterator erase(reverse_iterator iter);
     const_reverse_iterator erase(const_reverse_iterator iter) { return static_cast<const_reverse_iterator>(erase(static_cast<reverse_iterator>(iter))); }
-
-    friend void list_sort(LinkedList<Linkage::DoubleLinkage, ValueType>& linked_list);
-    friend void list_mergesort(std::unique_ptr<node_type>& left_owner, size_type size);
-    friend void list_merge(std::unique_ptr<node_type>& left_owner, node_type* right_raw, size_type right_size, node_type* tail);
 
     reverse_iterator rbegin() noexcept { return reverse_iterator{tail}; }
     const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator{tail}; };

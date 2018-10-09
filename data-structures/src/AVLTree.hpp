@@ -14,19 +14,36 @@ template<typename KeyType, typename ValueType>
 class AVLTree : public BinarySearchTree<int, KeyType, ValueType>
 {
 public:
+    using value_type = typename BinarySearchTree<int, KeyType, ValueType>::value_type;
+    using key_type = typename BinarySearchTree<int, KeyType, ValueType>::key_type;
+    using mapped_type = typename BinarySearchTree<int, KeyType, ValueType>::value_type;
+    using reference = typename BinarySearchTree<int, KeyType, ValueType>::reference;
+    using const_reference = typename BinarySearchTree<int, KeyType, ValueType>::const_reference;
+    using pointer = typename BinarySearchTree<int, KeyType, ValueType>::pointer;
+    using const_pointer = typename BinarySearchTree<int, KeyType, ValueType>::const_pointer;
+    using size_type = typename BinarySearchTree<int, KeyType, ValueType>::size_type;
+    using difference_type = typename BinarySearchTree<int, KeyType, ValueType>::difference_type;
+
+    using iterator = typename BinarySearchTree<int, KeyType, ValueType>::iterator;
+    using const_iterator = typename BinarySearchTree<int, KeyType, ValueType>::const_iterator;
+    using reverse_iterator = typename BinarySearchTree<int, KeyType, ValueType>::reverse_iterator;
+    using const_reverse_iterator = typename BinarySearchTree<int, KeyType, ValueType>::const_reverse_iterator;
+
+    using BinarySearchTree<int, KeyType, ValueType>::insert;
+    using BinarySearchTree<int, KeyType, ValueType>::clear;
+
+private:
     using TreeNode = typename BinarySearchTree<int, KeyType, ValueType>::TreeNode;
     using BinarySearchTree<int, KeyType, ValueType>::root;
     using BinarySearchTree<int, KeyType, ValueType>::sz;
     using BinarySearchTree<int, KeyType, ValueType>::clone_tree;
     using BinarySearchTree<int, KeyType, ValueType>::left_rotate;
     using BinarySearchTree<int, KeyType, ValueType>::right_rotate;
-    using BinarySearchTree<int, KeyType, ValueType>::insert;
     using BinarySearchTree<int, KeyType, ValueType>::tree_minimum;
     using BinarySearchTree<int, KeyType, ValueType>::single_transplant;
     using BinarySearchTree<int, KeyType, ValueType>::double_transplant;
-    using BinarySearchTree<int, KeyType, ValueType>::clear;
 
-private:
+
     int height(TreeNode* node) noexcept { return node ? node->balance_info : -1; } // the AVL height of a node
     void update(TreeNode* node);
     void rebalance_insert(TreeNode* node);
@@ -79,10 +96,11 @@ void AVLTree<KeyType, ValueType>::update(TreeNode* node)
 template<typename KeyType, typename ValueType>
 void AVLTree<KeyType, ValueType>::rebalance_insert(TreeNode* node)
 {
-    while (node) {
-        if (rebalance(node))
+    auto node_parent = node->parent;
+    while (node_parent) {
+        if (rebalance(node_parent))
             break;
-        node = node->parent;
+        node_parent = node_parent->parent;
     }
 }
 
@@ -129,7 +147,7 @@ template<typename KeyType, typename ValueType>
 void AVLTree<KeyType, ValueType>::delete_node(TreeNode* node)
 {
     --sz;
-    if (node == root.get() && !node->left && !node->right) { // only one node in the tree
+    if (node == root.get() && sz == 1) { // only one node in the tree
         clear();
         return;
     }

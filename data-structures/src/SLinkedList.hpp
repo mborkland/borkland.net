@@ -47,8 +47,10 @@ public:
     template<typename InputIterator> SLinkedList(InputIterator begin, InputIterator end) { construct_from_iterator_range(begin, end); }
     SLinkedList(std::initializer_list<value_type> li) : SLinkedList<value_type>{li.begin(), li.end()} { }
     ~SLinkedList() = default;
-    SLinkedList& operator=(const SLinkedList<value_type>& other) = default;
-    SLinkedList& operator=(SLinkedList<value_type>&& other) noexcept = default;
+    SLinkedList& operator=(const SLinkedList<value_type>& other)
+      { return dynamic_cast<SLinkedList&>(LinkedList<Linkage::SingleLinkage, value_type>::operator=(other)); }
+    SLinkedList& operator=(SLinkedList<value_type>&& other) noexcept
+      { return dynamic_cast<SLinkedList&>(LinkedList<Linkage::SingleLinkage, value_type>::operator=(std::forward<SLinkedList<value_type>>(other))); }
 
     friend class ForwardListIterator<value_type>;
     friend class ConstForwardListIterator<value_type>;

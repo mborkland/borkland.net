@@ -38,8 +38,8 @@ public:
 protected:
     std::unique_ptr<node_type> head = std::unique_ptr<node_type>(nullptr);
     node_type* tail = nullptr;
-    bool srtd = true;         // the list is guaranteed to be sorted if true
     size_type sz = 0;         // size of the list
+    bool srtd = true;         // the list is guaranteed to be sorted if true
 
     void list_swap(LinkedList<LinkageType, ValueType>& other);
     void swap(value_type& a, value_type& b);
@@ -187,26 +187,6 @@ public:
     friend class ConstReverseListIterator<ValueType>;
 };
 
-
-template<Linkage LinkageType, typename ValueType>
-LinkedList<LinkageType, ValueType>& LinkedList<LinkageType, ValueType>::operator=(const LinkedList<LinkageType, ValueType>& other)
-{
-    clear();
-    for (const auto& x : other) {
-        push_back(x);
-    }
-
-    srtd = other.srtd;
-    return *this;
-}
-
-template<Linkage LinkageType, typename ValueType>
-LinkedList<LinkageType, ValueType>& LinkedList<LinkageType, ValueType>::operator=(LinkedList<LinkageType, ValueType>&& other) noexcept
-{
-    list_swap(other);
-    return *this;
-}
-
 template<Linkage LinkageType, typename ValueType>
 void LinkedList<LinkageType, ValueType>::list_swap(LinkedList<LinkageType, ValueType>& other)
 {
@@ -303,6 +283,25 @@ GenericIterator LinkedList<LinkageType, ValueType>::generic_emplace(GenericItera
     return iter;
 }
 
+template<Linkage LinkageType, typename ValueType>
+LinkedList<LinkageType, ValueType>& LinkedList<LinkageType, ValueType>::operator=(const LinkedList<LinkageType, ValueType>& other)
+{
+    clear();
+    for (const auto& x : other) {
+        push_back(x);
+    }
+
+    srtd = other.srtd;
+    return *this;
+}
+
+template<Linkage LinkageType, typename ValueType>
+LinkedList<LinkageType, ValueType>& LinkedList<LinkageType, ValueType>::operator=(LinkedList<LinkageType, ValueType>&& other) noexcept
+{
+    list_swap(other);
+    return *this;
+}
+
 /* Public function that inserts a value in-place before a node in the list. */
 template<Linkage LinkageType, typename ValueType>
 template<typename... Args>
@@ -365,7 +364,7 @@ typename LinkedList<LinkageType, ValueType>::iterator LinkedList<LinkageType, Va
     }
 
     return iterator{node};
-};
+}
 
 /* Public function that counts the occurrences of a value in the list. */
 template<Linkage LinkageType, typename ValueType>

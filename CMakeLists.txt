@@ -30,3 +30,6 @@ target_link_libraries(tests-SLinkedList Catch)
 
 set(AVLTREE_SOURCE_FILES data-structures/test/tests-AVLTree.cpp)
 add_executable(tests-AVLTree ${AVLTREE_SOURCE_FILES})
+
+set(REDBLACKTREE_SOURCE_FILES data-structures/test/tests-RedBlackTree.cpp)
+add_executable(tests-RedBlackTree ${REDBLACKTREE_SOURCE_FILES})

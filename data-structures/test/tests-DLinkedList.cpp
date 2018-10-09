@@ -545,7 +545,7 @@ TEST_CASE("DLinkedList find function works as expected", "[DLinkedList]")
         constexpr int n = 50;
         constexpr int magic_number1 = -8;
         constexpr int magic_number2 = 67;
-        auto dlist = fill_list_with_consecutive_values(50);
+        auto dlist = fill_list_with_consecutive_values(n);
         auto it1 = dlist.find(magic_number1);
         auto it2 = dlist.find(magic_number2);
         REQUIRE(it1 == dlist.end());

@@ -8,16 +8,16 @@
 #include <unordered_set>
 #include <vector>
 //#include "../../catch/catch.hpp"
-#include "../src/AVLTree.hpp"
+#include "../src/RedBlackTree.hpp"
 
-using bork_lib::AVLTree;
+using bork_lib::RedBlackTree;
 
 std::random_device rd;
 constexpr int max_key_value = 100000;
 constexpr int max_val_value = 25000;
 constexpr int num_insertions = 50000;
 
-AVLTree<int, int> func_that_copies_tree(AVLTree<int, int> tree)
+RedBlackTree<int, int> func_that_copies_tree(RedBlackTree<int, int> tree)
 {
     return tree;
 }
@@ -28,12 +28,12 @@ void copy_constructor_test()
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
-    AVLTree<int, int> orig_tree;
+    RedBlackTree<int, int> orig_tree;
     for (int i = 0; i < num_insertions; ++i) {
         orig_tree.insert({key_dist(mt), val_dist(mt)});
     }
 
-    AVLTree<int, int> copied_tree{orig_tree};
+    RedBlackTree<int, int> copied_tree{orig_tree};
     std::string orig_tree_string {};
     std::string copied_tree_string {};
 
@@ -54,12 +54,12 @@ void copy_assignment_test()
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
-    AVLTree<int, int> orig_tree;
+    RedBlackTree<int, int> orig_tree;
     for (int i = 0; i < num_insertions; ++i) {
         orig_tree.insert({key_dist(mt), val_dist(mt)});
     }
 
-    AVLTree<int, int> copied_tree = {{1,4}, {5,38}, {-45, 106}, {98, 2}, {-1024, 1398}};
+    RedBlackTree<int, int> copied_tree = {{1,4}, {5,38}, {-45, 106}, {98, 2}, {-1024, 1398}};
     copied_tree = orig_tree;
     std::string orig_tree_string {};
     std::string copied_tree_string {};
@@ -81,12 +81,12 @@ void construct_from_iterator_range_test()
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
-    AVLTree<int, int> orig_tree;
+    RedBlackTree<int, int> orig_tree;
     for (int i = 0; i < num_insertions; ++i) {
         orig_tree.insert({key_dist(mt), val_dist(mt)});
     }
 
-    AVLTree<int, int> copied_tree(orig_tree.begin(), orig_tree.end());
+    RedBlackTree<int, int> copied_tree(orig_tree.begin(), orig_tree.end());
     std::string orig_tree_string {};
     std::string copied_tree_string {};
 
@@ -107,12 +107,12 @@ void move_constructor_test()
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
-    AVLTree<int, int> orig_tree;
+    RedBlackTree<int, int> orig_tree;
     for (int i = 0; i < num_insertions; ++i) {
         orig_tree.insert({key_dist(mt), val_dist(mt)});
     }
 
-    AVLTree<int, int> copied_tree{std::move(func_that_copies_tree(orig_tree))};
+    RedBlackTree<int, int> copied_tree{std::move(func_that_copies_tree(orig_tree))};
     std::string orig_tree_string {};
     std::string copied_tree_string {};
 
@@ -133,12 +133,12 @@ void move_assignment_test()
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
-    AVLTree<int, int> orig_tree;
+    RedBlackTree<int, int> orig_tree;
     for (int i = 0; i < num_insertions; ++i) {
         orig_tree.insert({key_dist(mt), val_dist(mt)});
     }
 
-    AVLTree<int, int> copied_tree = {{1,4}, {5,38}, {-45, 106}, {98, 2}, {-1024, 1398}};
+    RedBlackTree<int, int> copied_tree = {{1,4}, {5,38}, {-45, 106}, {98, 2}, {-1024, 1398}};
     copied_tree = std::move(func_that_copies_tree(orig_tree));
     std::string orig_tree_string {};
     std::string copied_tree_string {};
@@ -160,7 +160,7 @@ void empty_clear_and_size_test()
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
-    AVLTree<int, int> orig_tree;
+    RedBlackTree<int, int> orig_tree;
     int num_actual_insertions {};
     for (int i = 0; i < num_insertions; ++i) {
         if (orig_tree.insert({key_dist(mt), val_dist(mt)}).second) {
@@ -194,7 +194,7 @@ void insert_test()
     int total_vec_sum {};
     std::for_each(pairs_to_insert.begin(), pairs_to_insert.end(), [&total_vec_sum](auto elem){ total_vec_sum += elem.first + elem.second; });
 
-    AVLTree<int, int> tree1 {};
+    RedBlackTree<int, int> tree1 {};
     for (const auto& x : pairs_to_insert) {
         tree1.insert(x);
     }
@@ -204,7 +204,7 @@ void insert_test()
 
     assert(total_tree_sum == total_vec_sum && "Insertion of items failed.\n");
 
-    AVLTree<int, int> tree2 = {{1,1}, {2,2}, {3,3}, {4,4}, {5,5}};
+    RedBlackTree<int, int> tree2 = {{1,1}, {2,2}, {3,3}, {4,4}, {5,5}};
     bool did_insert_first_attempt = tree2.insert({1,3}).second;
     bool did_insert_second_attempt = tree2.insert({3,5}).second;
 
@@ -212,7 +212,7 @@ void insert_test()
     assert(!did_insert_second_attempt && "Second duplicate insertion check failed.\n");
     assert(tree2.size() == 5 && "Duplicate insertion size check failed.\n");
 
-    AVLTree<int, int> tree3 {};
+    RedBlackTree<int, int> tree3 {};
     int n = 21;
     for (int i = 0; i < n; ++i) {
         if (i % 2 == 0) {
@@ -230,7 +230,7 @@ void insert_test()
 
 void set_default_test()
 {
-    AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+    RedBlackTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
     int default_val = 12;
     int first_check = tree.set_default(1, default_val);
     int second_check = tree.set_default(6, default_val);
@@ -242,7 +242,7 @@ void set_default_test()
 
 void find_test()
 {
-    AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+    RedBlackTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
     auto first_check = tree.find(2);
     auto second_check = tree.find(-17);
     assert(first_check->first == 2 && "Find with element found test failed.\n");
@@ -252,7 +252,7 @@ void find_test()
 
 void subscript_test()
 {
-    AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+    RedBlackTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
     assert(tree[3] == 1 && "Subscript without modification test failed.\n");
     tree[3] = 5;
     assert(tree[3] == 5 && "Subscript with modification test failed.\n");
@@ -260,7 +260,7 @@ void subscript_test()
 
 void const_subscript_test()
 {
-    const AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+    const RedBlackTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
     assert(tree[3] == 1 && "Const subscript without modification test failed.\n");
     //tree[3] = 5;   // if uncommented, compile-time error
 }
@@ -276,7 +276,7 @@ void erase_by_key_test()
         unique_keys.insert(key_dist(mt));
     }
 
-    AVLTree<int, int> tree {};
+    RedBlackTree<int, int> tree {};
     for (const auto& x : unique_keys) {
         tree.insert({x, val_dist(mt)});
     }
@@ -321,7 +321,7 @@ void erase_by_iter_test()
     std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
 
-    AVLTree<int, int> tree {};
+    RedBlackTree<int, int> tree {};
     for (int i = 0; i < 20; ++i) {
         tree.insert({key_dist(mt), val_dist(mt)});
     }
@@ -339,6 +339,64 @@ void erase_by_iter_test()
     }
 }
 
+void print_tree(RedBlackTree<int, int>& rb)
+{
+    rb.inorder_print(rb.tree_root());
+    std::cout << '\n';
+}
+
+void print_height(RedBlackTree<int, int>& rb)
+{
+    std::cout << rb.tree_height(rb.tree_root()) << '\n';
+}
+
+int main()
+{
+    constexpr int n = 20;
+    RedBlackTree<int, int> rb {};
+    std::mt19937 mt{rd()};
+    std::uniform_int_distribution<> dist{0, n*n};
+    int num_inserted = 0;
+    std::vector<int> nums_inserted {};
+    for (int i = 0; i < n; ++i) {
+        int rand = dist(mt);
+        std::cout << rand << ' ';
+        if (rb.insert({rand, rand}).second) {
+            ++num_inserted;
+            nums_inserted.push_back(rand);
+        }
+    }
+
+    std::cout << '\n';
+    print_tree(rb);
+    assert(rb.size() == num_inserted);
+    std::sort(nums_inserted.begin(), nums_inserted.end());
+    std::cout << "Height for " << num_inserted << " nodes is: ";
+    print_height(rb);
+
+    auto vec_it = nums_inserted.begin();
+    auto tree_it = rb.begin();
+    for ( ; vec_it != nums_inserted.end() && tree_it != rb.end(); ++vec_it, ++tree_it) {
+        assert(*vec_it == tree_it->first);
+    }
+
+    std::cout << "All values inserted correctly!\n\n";
+    print_tree(rb);
+
+    int num_deleted = 0;
+    bool condition = num_deleted < num_inserted;
+    while (condition) {
+         int rand = dist(mt);
+         if (rb.find(rand) != rb.end()) {
+             std::cout << "\nErasing " << rand << " ...\n";
+             rb.erase(rand);
+             ++num_deleted;
+             print_tree(rb);
+         }
+    }
+}
+
+/*
 int main()
 {
     copy_constructor_test();
@@ -355,4 +413,4 @@ int main()
     erase_by_key_test();
     erase_by_iter_test();
     std::cout << "All tests passed.\n";
-}
+}*/
