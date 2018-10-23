@@ -69,6 +69,8 @@ private:
     void delete_node(TreeNode* node) override;
     void insert_null_leaf(std::unique_ptr<TreeNode>& owner, TreeNode* parent);
     bool is_black(TreeNode* node) { return node->balance_info == Color::black || node->balance_info == Color::null; }
+    bool is_black_child(TreeNode* node) { return !node || node->balance_info == Color::black; }
+    void release_null_node(TreeNode* node);
 
 public:
     // construction, assignment, and destruction
@@ -90,7 +92,7 @@ public:
     friend TreeNode* succ<TreeNode>(TreeNode* node);
     friend TreeNode* pred<TreeNode>(TreeNode* node);
 
-    int tree_height(TreeNode* node)
+    int tree_height(TreeNode* node) // testing function
     {
         if (!node || (!node->left && !node->right)) {
             return 0;
@@ -190,7 +192,8 @@ void RedBlackTree<KeyType, ValueType>::rebalance_insert(TreeNode* node)
 template<typename KeyType, typename ValueType>
 void RedBlackTree<KeyType, ValueType>::rebalance_delete(TreeNode* node)
 {
-    // TODO: fix this!!!
+    auto original_node = node;
+    Color original_color = original_node->balance_info;
     while (node != root.get() && is_black(node)) {
         if (node == node->parent->left.get()) {
             auto sibling = node->parent->right.get();
@@ -201,7 +204,7 @@ void RedBlackTree<KeyType, ValueType>::rebalance_delete(TreeNode* node)
                 sibling = node->parent->right.get();
             }
 
-            if (sibling->left->balance_info == Color::black && sibling->right->balance_info == Color::black) {
+            if (is_black_child(sibling->left.get()) || is_black_child(sibling->right.get())) {
                 sibling->balance_info = Color::red;   // case 2: node's sibling is black, and both of the sibling's
                 node = node->parent;                  //         children are black
             } else {         // node's sibling is black
@@ -210,25 +213,53 @@ void RedBlackTree<KeyType, ValueType>::rebalance_delete(TreeNode* node)
                     sibling->balance_info = Color::red;
                     right_rotate(sibling);
                     sibling = node->parent->right.get();
-                }
+                } else {
+                    if (sibling->left->balance_info == Color::black) {  // case 4: opposite of case 3
+                        sibling->balance_info = node->parent->balance_info;
+                        node->parent->balance_info = Color::black;
+                        sibling->right->balance_info = Color::black;
+                        left_rotate(node->parent);
+                    }
 
-                sibling->balance_info = node->parent->balance_info;
-                node->parent->balance_info = Color::black;
-                sibling->right->balance_info = Color::black;
-                left_rotate(node->parent);
-                node = root.get();
+                    node = root.get();
+                }
             }
         } else {
             auto sibling = node->parent->left.get();
-            if (sibling->balance_info == Color::red) { // case 1: node's sibling is red
+            if (sibling->balance_info == Color::red) {  // case 1: node's sibling is red
                 sibling->balance_info = Color::black;
                 sibling->parent->balance_info = Color::red;
                 right_rotate(node->parent);
                 sibling = node->parent->left.get();
             }
+
+            if (sibling->left->balance_info == Color::black && sibling->right->balance_info == Color::black) {
+                sibling->balance_info = Color::red;   // case 2: node's sibling is black, and both of the sibling's
+                node = node->parent;                  //         children are black
+            } else {
+                if (sibling->left->balance_info == Color::black) {  // case 3: the sibling's left and right children
+                    sibling->right->balance_info = Color::black;      //         are black and red, respectively
+                    sibling->balance_info = Color::red;
+                    left_rotate(sibling);
+                    sibling = node->parent->left.get();
+                } else {
+                    if (sibling->right->balance_info == Color::black) {  // case 4: opposite of case 3
+                        sibling->balance_info = node->parent->balance_info;
+                        node->parent->balance_info = Color::black;
+                        sibling->left->balance_info = Color::black;
+                        right_rotate(node->parent);
+                    }
+
+                    node = root.get();
+                }
+            }
         }
 
         node->balance_info = Color::black;
+    }
+
+    if (original_color == Color::null) {
+        release_null_node(original_node);
     }
 }
 
@@ -242,11 +273,15 @@ void RedBlackTree<KeyType, ValueType>::delete_node(TreeNode* node)
         return;
     }
 
-    TreeNode* node_to_rebalance;  // node where rebalancing will begin
+    TreeNode* node_to_rebalance = nullptr;  // node where rebalancing will begin
     auto original_color = node->balance_info;
     if (!node->left) {  // case 1: no children or only right child
-        node->balance_info = Color::null;
-        node_to_rebalance = node;
+        if (original_color == Color::black) {
+            node->balance_info = Color::null;
+            node_to_rebalance = node;
+        } else {
+            single_transplant(node, node->right);
+        }
     } else if (!node->right) {  // case 2: only left child
         node_to_rebalance = node->left.get();
         single_transplant(node, node->left);
@@ -278,6 +313,12 @@ template<typename KeyType, typename ValueType>
 void RedBlackTree<KeyType, ValueType>::insert_null_leaf(std::unique_ptr<TreeNode>& owner, TreeNode* parent)
 {
     owner = std::make_unique<TreeNode>({}, parent, Color::null);
+}
+
+template<typename KeyType, typename ValueType>
+void RedBlackTree<KeyType, ValueType>::release_null_node(TreeNode* node)
+{
+    node == node->parent->left.get() ? node->parent->left.release() : node->parent->right.release();
 }
 
 }    // end namespace

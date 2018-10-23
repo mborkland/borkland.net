@@ -1,13 +1,10 @@
 #include <algorithm>
-#include <cassert>
-#include <iostream>
 #include <map>
 #include <random>
 #include <set>
-#include <string>
 #include <unordered_set>
 #include <vector>
-//#include "../../catch/catch.hpp"
+#include "../../catch/catch.hpp"
 #include "../src/AVLTree.hpp"
 
 using bork_lib::AVLTree;
@@ -17,62 +14,82 @@ constexpr int max_key_value = 100000;
 constexpr int max_val_value = 25000;
 constexpr int num_insertions = 50000;
 
-AVLTree<int, int> func_that_copies_tree(AVLTree<int, int> tree)
+AVLTree<int, int> fill_tree_with_random_values()
 {
+    std::mt19937 mt{rd()};
+    std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
+    std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
+    AVLTree<int, int> tree;
+    for (int i = 0; i < num_insertions; ++i) {
+        tree.insert({key_dist(mt), val_dist(mt)});
+    }
+
     return tree;
 }
 
-void copy_constructor_test()
+AVLTree<int, int> fill_tree_with_consecutive_values(int n)
 {
-    std::mt19937 mt{rd()};
-    std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
-    std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
-
-    AVLTree<int, int> orig_tree;
-    for (int i = 0; i < num_insertions; ++i) {
-        orig_tree.insert({key_dist(mt), val_dist(mt)});
+    AVLTree<int, int> tree;
+    for (int i = 1; i <= n; ++i) {
+        tree.insert({i,i});
     }
 
-    AVLTree<int, int> copied_tree{orig_tree};
-    std::string orig_tree_string {};
-    std::string copied_tree_string {};
-
-    for (const auto& x : orig_tree) {
-        orig_tree_string.append(std::to_string(x.first + x.second));
-    }
-
-    for (const auto& x : copied_tree) {
-        copied_tree_string.append(std::to_string(x.first + x.second));
-    }
-
-    assert(orig_tree_string == copied_tree_string && "Copy construction failed.\n");
+    return std::move(tree);
 }
 
-void copy_assignment_test()
+TEST_CASE("AVLTrees can be assigned to", "[AVLTree]")
 {
-    std::mt19937 mt{rd()};
-    std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
-    std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
-
-    AVLTree<int, int> orig_tree;
-    for (int i = 0; i < num_insertions; ++i) {
-        orig_tree.insert({key_dist(mt), val_dist(mt)});
+    SECTION("Move assignment occurs without errors")
+    {
+        AVLTree<int, int> tree;
+        REQUIRE_NOTHROW(tree = fill_tree_with_random_values());
     }
 
-    AVLTree<int, int> copied_tree = {{1,4}, {5,38}, {-45, 106}, {98, 2}, {-1024, 1398}};
-    copied_tree = orig_tree;
-    std::string orig_tree_string {};
-    std::string copied_tree_string {};
-
-    for (const auto& x : orig_tree) {
-        orig_tree_string.append(std::to_string(x.first + x.second));
+    SECTION("Copy assignment occurs without errors")
+    {
+        AVLTree<int, int> tree1;
+        tree1 = fill_tree_with_random_values();
+        AVLTree<int, int> tree2 = {{1,1}, {2,2}, {3,3}, {4,4}, {5,5}};
+        REQUIRE_NOTHROW(tree2 = tree1);
     }
 
-    for (const auto& x : copied_tree) {
-        copied_tree_string.append(std::to_string(x.first + x.second));
+    SECTION("Lists have the same elements after copy assignment")
+    {
+        AVLTree<int, int> tree1;
+        tree1 = fill_tree_with_random_values();
+        AVLTree<int, int> tree2 = {{1,1}, {2,2}, {3,3}, {4,4}, {5,5}};
+        tree2 = tree1;
+        auto it = tree1.begin();
+        std::for_each(tree2.begin(), tree2.end(), [&](auto elem) {
+            REQUIRE(elem.first == it->first);
+            REQUIRE(elem.second == it->second);
+            ++it;
+        });
+    }
+}
+
+TEST_CASE("AVLTrees can be constructed from another AVLTree", "[AVLTree]" )
+{
+    SECTION("Tree has the correct values after move construction")
+    {
+        constexpr int n = 11288;
+        auto tree = fill_tree_with_consecutive_values(n);
+        std::size_t sum = 0;
+        std::for_each(tree.begin(), tree.end(), [&](auto elem) { sum += elem.first; });
+        REQUIRE(sum == (n*(n+1))/2);
     }
 
-    assert(orig_tree_string == copied_tree_string && "Copy assignment failed.\n");
+    SECTION("Trees have the same elements after copy construction")
+    {
+        auto tree1 = fill_tree_with_random_values();
+        auto tree2 = tree1;
+        auto it = tree1.begin();
+        std::for_each(tree2.begin(), tree2.end(), [&](auto elem) {
+            REQUIRE(elem.first == it->first);
+            REQUIRE(elem.second == it->second);
+            ++it;
+        });
+    }
 }
 
 void construct_from_iterator_range_test()
@@ -337,22 +354,4 @@ void erase_by_iter_test()
     for (const auto& x : tree) {
         assert(both_are_even(x) && "Erase by iterator test failed.\n");
     }
-}
-
-int main()
-{
-    copy_constructor_test();
-    copy_assignment_test();
-    construct_from_iterator_range_test();
-    move_constructor_test();
-    move_assignment_test();
-    empty_clear_and_size_test();
-    insert_test();
-    set_default_test();
-    find_test();
-    subscript_test();
-    const_subscript_test();
-    erase_by_key_test();
-    erase_by_iter_test();
-    std::cout << "All tests passed.\n";
 }

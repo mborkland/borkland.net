@@ -352,7 +352,7 @@ void print_height(RedBlackTree<int, int>& rb)
 
 int main()
 {
-    constexpr int n = 20;
+    constexpr int n = 12;
     RedBlackTree<int, int> rb {};
     std::mt19937 mt{rd()};
     std::uniform_int_distribution<> dist{0, n*n};
@@ -391,6 +391,7 @@ int main()
              std::cout << "\nErasing " << rand << " ...\n";
              rb.erase(rand);
              ++num_deleted;
+             std::cout << "Root is: " << rb.root_data() << '\n';
              print_tree(rb);
          }
     }

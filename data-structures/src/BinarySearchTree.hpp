@@ -115,6 +115,7 @@ public:
     // testing functions
     void inorder_print(TreeNode* node);
     TreeNode* tree_root() { return root.get(); }
+    key_type root_data() { return root->data.first; }
 };
 
 /* Copy assignment: allows assignment to a tree from an lvalue. */
