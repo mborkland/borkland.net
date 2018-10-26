@@ -1,8 +1,6 @@
 #include <algorithm>
-#include <map>
 #include <random>
-#include <set>
-#include <unordered_set>
+#include <string>
 #include <vector>
 #include "../../catch/catch.hpp"
 #include "../src/AVLTree.hpp"
@@ -13,6 +11,7 @@ std::random_device rd;
 constexpr int max_key_value = 100000;
 constexpr int max_val_value = 25000;
 constexpr int num_insertions = 50000;
+int num_added = 0;
 
 AVLTree<int, int> fill_tree_with_random_values()
 {
@@ -21,7 +20,9 @@ AVLTree<int, int> fill_tree_with_random_values()
     std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
     AVLTree<int, int> tree;
     for (int i = 0; i < num_insertions; ++i) {
-        tree.insert({key_dist(mt), val_dist(mt)});
+        if (tree.insert({key_dist(mt), val_dist(mt)}).second) {
+            ++num_added;
+        }
     }
 
     return tree;
@@ -42,7 +43,7 @@ TEST_CASE("AVLTrees can be assigned to", "[AVLTree]")
     SECTION("Move assignment occurs without errors")
     {
         AVLTree<int, int> tree;
-        REQUIRE_NOTHROW(tree = fill_tree_with_random_values());
+        REQUIRE_NOTHROW(tree = std::move(fill_tree_with_random_values()));
     }
 
     SECTION("Copy assignment occurs without errors")
@@ -53,7 +54,29 @@ TEST_CASE("AVLTrees can be assigned to", "[AVLTree]")
         REQUIRE_NOTHROW(tree2 = tree1);
     }
 
-    SECTION("Lists have the same elements after copy assignment")
+    SECTION("Trees have the correct elements after move assignment")
+    {
+        AVLTree<int, int> tree1 = fill_tree_with_random_values();
+        std::vector<int> key_vec {};
+        std::vector<int> val_vec {};
+        for (const auto& x : tree1) {
+            key_vec.push_back(x.first);
+            val_vec.push_back(x.second);
+        }
+
+        AVLTree<int, int> tree2 = {{1,1}, {2,2}, {3,3}, {4,4}, {5,5}};
+        tree2 = std::move(tree1);
+        auto key_it = key_vec.begin();
+        auto val_it = val_vec.begin();
+        std::for_each(tree2.begin(), tree2.end(), [&](auto elem) {
+            REQUIRE(elem.first == *key_it);
+            REQUIRE(elem.second == *val_it);
+            ++key_it;
+            ++val_it;
+        });
+    }
+
+    SECTION("Trees have the same elements after copy assignment")
     {
         AVLTree<int, int> tree1;
         tree1 = fill_tree_with_random_values();
@@ -73,7 +96,7 @@ TEST_CASE("AVLTrees can be constructed from another AVLTree", "[AVLTree]" )
     SECTION("Tree has the correct values after move construction")
     {
         constexpr int n = 11288;
-        auto tree = fill_tree_with_consecutive_values(n);
+        auto tree = std::move(fill_tree_with_consecutive_values(n));
         std::size_t sum = 0;
         std::for_each(tree.begin(), tree.end(), [&](auto elem) { sum += elem.first; });
         REQUIRE(sum == (n*(n+1))/2);
@@ -92,266 +115,276 @@ TEST_CASE("AVLTrees can be constructed from another AVLTree", "[AVLTree]" )
     }
 }
 
-void construct_from_iterator_range_test()
+TEST_CASE("AVLTree can be constructed from iterator range", "[AVLTree]")
 {
-    std::mt19937 mt{rd()};
-    std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
-    std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
-
-    AVLTree<int, int> orig_tree;
-    for (int i = 0; i < num_insertions; ++i) {
-        orig_tree.insert({key_dist(mt), val_dist(mt)});
-    }
-
-    AVLTree<int, int> copied_tree(orig_tree.begin(), orig_tree.end());
-    std::string orig_tree_string {};
-    std::string copied_tree_string {};
-
-    for (const auto& x : orig_tree) {
-        orig_tree_string.append(std::to_string(x.first + x.second));
-    }
-
-    for (const auto& x : copied_tree) {
-        copied_tree_string.append(std::to_string(x.first + x.second));
-    }
-
-    assert(orig_tree_string == copied_tree_string && "Copy construction failed.\n");
-}
-
-void move_constructor_test()
-{
-    std::mt19937 mt{rd()};
-    std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
-    std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
-
-    AVLTree<int, int> orig_tree;
-    for (int i = 0; i < num_insertions; ++i) {
-        orig_tree.insert({key_dist(mt), val_dist(mt)});
-    }
-
-    AVLTree<int, int> copied_tree{std::move(func_that_copies_tree(orig_tree))};
-    std::string orig_tree_string {};
-    std::string copied_tree_string {};
-
-    for (const auto& x : orig_tree) {
-        orig_tree_string.append(std::to_string(x.first + x.second));
-    }
-
-    for (const auto& x : copied_tree) {
-        copied_tree_string.append(std::to_string(x.first + x.second));
-    }
-
-    assert(orig_tree_string == copied_tree_string && "Move construction failed.\n");
-}
-
-void move_assignment_test()
-{
-    std::mt19937 mt{rd()};
-    std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
-    std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
-
-    AVLTree<int, int> orig_tree;
-    for (int i = 0; i < num_insertions; ++i) {
-        orig_tree.insert({key_dist(mt), val_dist(mt)});
-    }
-
-    AVLTree<int, int> copied_tree = {{1,4}, {5,38}, {-45, 106}, {98, 2}, {-1024, 1398}};
-    copied_tree = std::move(func_that_copies_tree(orig_tree));
-    std::string orig_tree_string {};
-    std::string copied_tree_string {};
-
-    for (const auto& x : orig_tree) {
-        orig_tree_string.append(std::to_string(x.first + x.second));
-    }
-
-    for (const auto& x : copied_tree) {
-        copied_tree_string.append(std::to_string(x.first + x.second));
-    }
-
-    assert(orig_tree_string == copied_tree_string && "Move assignment failed.\n");
-}
-
-void empty_clear_and_size_test()
-{
-    std::mt19937 mt{rd()};
-    std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
-    std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
-
-    AVLTree<int, int> orig_tree;
-    int num_actual_insertions {};
-    for (int i = 0; i < num_insertions; ++i) {
-        if (orig_tree.insert({key_dist(mt), val_dist(mt)}).second) {
-            ++num_actual_insertions;
-        }
-    }
-
-    assert(orig_tree.size() == num_actual_insertions && "Size test failed.\n");
-
-    orig_tree.clear();
-    assert(orig_tree.size() == 0 && "Clear test failed.\n");
-    assert(orig_tree.empty() && "Empty test failed.\n");
-}
-
-void insert_test()
-{
-    std::mt19937 mt{rd()};
-    std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
-    std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
-
-    std::unordered_set<int> unique_keys {};
-    for (int i = 0; i < num_insertions; ++i) {
-        unique_keys.insert(key_dist(mt));
-    }
-
-    std::vector<std::pair<int, int>> pairs_to_insert {};
-    for (const auto& x : unique_keys) {
-        pairs_to_insert.emplace_back(x, val_dist(mt));
-    }
-
-    int total_vec_sum {};
-    std::for_each(pairs_to_insert.begin(), pairs_to_insert.end(), [&total_vec_sum](auto elem){ total_vec_sum += elem.first + elem.second; });
-
-    AVLTree<int, int> tree1 {};
-    for (const auto& x : pairs_to_insert) {
-        tree1.insert(x);
-    }
-
-    int total_tree_sum {};
-    std::for_each(tree1.begin(), tree1.end(), [&total_tree_sum](auto elem){ total_tree_sum += elem.first + elem.second; });
-
-    assert(total_tree_sum == total_vec_sum && "Insertion of items failed.\n");
-
-    AVLTree<int, int> tree2 = {{1,1}, {2,2}, {3,3}, {4,4}, {5,5}};
-    bool did_insert_first_attempt = tree2.insert({1,3}).second;
-    bool did_insert_second_attempt = tree2.insert({3,5}).second;
-
-    assert(!did_insert_first_attempt && "First duplicate insertion check failed.\n");
-    assert(!did_insert_second_attempt && "Second duplicate insertion check failed.\n");
-    assert(tree2.size() == 5 && "Duplicate insertion size check failed.\n");
-
-    AVLTree<int, int> tree3 {};
-    int n = 21;
-    for (int i = 0; i < n; ++i) {
-        if (i % 2 == 0) {
-            tree3.insert({i,i});
-        }
-    }
-    for (auto it = tree3.begin(); it != tree3.end(); ++it) {
-        int odd = it->first + 1;
-        it = tree3.insert({odd, odd}).first;
-    }
-    int key_sum {};
-    std::for_each(tree3.begin(), tree3.end(), [&key_sum](auto elem) { key_sum += elem.first; });
-    assert(key_sum == (n*(n+1))/2 && "Insertion return iterator check failed.\n");
-}
-
-void set_default_test()
-{
-    AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
-    int default_val = 12;
-    int first_check = tree.set_default(1, default_val);
-    int second_check = tree.set_default(6, default_val);
-    assert(first_check != default_val && "First set_default return value test failed.\n");
-    assert(tree[1] != default_val && "First set_default insertion test failed.\n");
-    assert(second_check == default_val && "Second set_default return value test failed.\n");
-    assert(tree[6] == default_val && "Second set_default insertion test failed.\n");
-}
-
-void find_test()
-{
-    AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
-    auto first_check = tree.find(2);
-    auto second_check = tree.find(-17);
-    assert(first_check->first == 2 && "Find with element found test failed.\n");
-    assert(first_check->second == 7 && "Find with element found test failed.\n");
-    assert(second_check == tree.end() && "Find with element not found test failed.\n");
-}
-
-void subscript_test()
-{
-    AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
-    assert(tree[3] == 1 && "Subscript without modification test failed.\n");
-    tree[3] = 5;
-    assert(tree[3] == 5 && "Subscript with modification test failed.\n");
-}
-
-void const_subscript_test()
-{
-    const AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
-    assert(tree[3] == 1 && "Const subscript without modification test failed.\n");
-    //tree[3] = 5;   // if uncommented, compile-time error
-}
-
-void erase_by_key_test()
-{
-    std::mt19937 mt{rd()};
-    std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
-    std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
-
-    std::set<int> unique_keys {};
-    for (int i = 0; i < num_insertions; ++i) {
-        unique_keys.insert(key_dist(mt));
-    }
-
-    AVLTree<int, int> tree {};
-    for (const auto& x : unique_keys) {
-        tree.insert({x, val_dist(mt)});
-    }
-
-    std::vector<int> keys_inserted {unique_keys.begin(), unique_keys.end()};
-    std::vector<int> keys_deleted {};
-    std::uniform_int_distribution<> deleted_key_dist{-max_key_value, max_key_value};
-    for (int i = 0; i < num_insertions / 2; ++i) {
-        int key_to_delete = deleted_key_dist(mt);
-        if (tree.erase(key_to_delete)) {
-            keys_deleted.emplace_back(key_to_delete);
-        }
-    }
-
-    std::vector<int> keys_remaining {};
-    for (const auto& x : tree) {
-        keys_remaining.emplace_back(x.first);
-    }
-
-    std::sort(keys_inserted.begin(), keys_inserted.end());
-    std::sort(keys_deleted.begin(), keys_deleted.end());
-    std::vector<int> diff {};
-    std::set_difference(keys_inserted.begin(), keys_inserted.end(),
-                        keys_deleted.begin(), keys_deleted.end(), std::back_inserter(diff));
-
-    assert(keys_remaining == diff && "Erase by key test failed.\n");
-}
-
-bool either_is_odd(std::pair<int, int> keyvalue)
-{
-    return std::abs(keyvalue.first % 2) == 1 || std::abs(keyvalue.second % 2) == 1;
-}
-
-bool both_are_even(std::pair<int, int> keyvalue)
-{
-    return keyvalue.first % 2 == 0 && keyvalue.second % 2 == 0;
-}
-
-void erase_by_iter_test()
-{
-    std::mt19937 mt{rd()};
-    std::uniform_int_distribution<> key_dist{-max_key_value, max_key_value};
-    std::uniform_int_distribution<> val_dist{-max_val_value, max_val_value};
-
-    AVLTree<int, int> tree {};
-    for (int i = 0; i < 20; ++i) {
-        tree.insert({key_dist(mt), val_dist(mt)});
-    }
-
-    for (auto it = tree.begin(); it != tree.end(); ) {
-        if (either_is_odd(*it)) {
-            it = tree.erase(it);
-        } else {
+    SECTION("Trees have the same elements after iterator range construction")
+    {
+        auto tree1 = fill_tree_with_random_values();
+        AVLTree<int, int> tree2{tree1.begin(), tree1.end()};
+        auto it = tree1.begin();
+        std::for_each(tree2.begin(), tree2.end(), [&](auto elem) {
+            REQUIRE(elem.first == it->first);
+            REQUIRE(elem.second == it->second);
             ++it;
+        });
+    }
+}
+
+TEST_CASE("AVLTree empty function returns correct value", "[AVLTree]")
+{
+    SECTION("Default-constructed tree is empty")
+    {
+        AVLTree<int, int> tree {};
+        REQUIRE(tree.empty());
+    }
+
+    SECTION("Tree with elements is not empty")
+    {
+        AVLTree<int, int> tree = {{1,1}, {2,2}};
+        REQUIRE_FALSE(tree.empty());
+    }
+
+    SECTION("Cleared tree is empty")
+    {
+        AVLTree<int, int> tree = fill_tree_with_random_values();
+        tree.clear();
+        REQUIRE(tree.empty());
+    }
+
+    SECTION("Tree with all elements erased is empty")
+    {
+        AVLTree<int, int> tree = {{1,1}, {2,2}};
+        tree.erase(1);
+        tree.erase(2);
+        REQUIRE(tree.empty());
+    }
+}
+
+TEST_CASE("AVLTree size function returns correct value", "[AVLTree]")
+{
+    SECTION("Default-constructed tree has size of zero")
+    {
+        AVLTree<int, int> tree {};
+        REQUIRE(tree.size() == 0);
+    }
+
+    SECTION("Tree with elements added has correct size")
+    {
+        num_added = 0;
+        auto tree = fill_tree_with_random_values();
+        REQUIRE(tree.size() == num_added);
+    }
+
+    SECTION("Tree with elements removed has correct size")
+    {
+        num_added = 0;
+        auto tree = fill_tree_with_random_values();
+        int i = 0;
+        for (auto it = tree.begin(); i != num_added / 2; ++i) {
+            it = tree.erase(it);
+        }
+        REQUIRE(tree.size() == num_added / 2);
+    }
+
+    SECTION("Cleared tree has the correct size")
+    {
+        auto tree = fill_tree_with_random_values();
+        tree.clear();
+        REQUIRE(tree.size() == 0);
+    }
+}
+
+TEST_CASE("AVLTree emplace function works as expected", "[AVLTree]")
+{
+    SECTION("Emplace function works correctly using pair's move constructor")
+    {
+        AVLTree<std::string, std::string> tree {};
+        tree.emplace(std::make_pair(std::string("a"), std::string("a")));
+        REQUIRE(tree["a"] == "a");
+    }
+
+    SECTION("Emplace function works correctly using pair's converting move constructor")
+    {
+        AVLTree<std::string, std::string> tree {};
+        tree.emplace(std::make_pair("b", "abcd"));
+        REQUIRE(tree["b"] == "abcd");
+    }
+
+    SECTION("Emplace function works correctly using pair's template constructor")
+    {
+        AVLTree<std::string, std::string> tree {};
+        tree.emplace("d", "ddd");
+        REQUIRE(tree["d"] == "ddd");
+    }
+}
+
+TEST_CASE("AVLTree insert function works as expected", "[AVLTree]")
+{
+    SECTION("Insertion by const lvalue reference")
+    {
+        SECTION("Insert function returns the correct iterator")
+        {
+            AVLTree<int, int> tree = {{1,1}, {2,2}, {3,3}, {7,7}, {8,8}};
+            auto kv_pair = std::make_pair(6,6);
+            auto return_it = tree.insert(kv_pair).first;
+            REQUIRE(return_it->first == 6);
+            REQUIRE(return_it->second == 6);
+        }
+
+        SECTION("Insert function returns the correct boolean value")
+        {
+            SECTION("Boolean value is correct when insertion succeeds")
+            {
+                AVLTree<int, int> tree = {{1,1}, {2,2}, {3,3}, {7,7}, {8,8}};
+                auto kv_pair = std::make_pair(6,6);
+                auto return_bool = tree.insert(kv_pair).second;
+                REQUIRE(return_bool);
+            }
+
+            SECTION("Boolean value is correct when insertion fails")
+            {
+                AVLTree<int, int> tree = {{1,1}, {2,2}, {3,3}, {6,6}, {8,8}};
+                auto kv_pair = std::make_pair(6,6);
+                auto return_bool = tree.insert(kv_pair).second;
+                REQUIRE_FALSE(return_bool);
+            }
         }
     }
 
-    for (const auto& x : tree) {
-        assert(both_are_even(x) && "Erase by iterator test failed.\n");
+    SECTION("Insertion by rvalue reference")
+    {
+        SECTION("Insert function returns the correct iterator")
+        {
+            AVLTree<int, int> tree = {{1,1}, {2,2}, {3,3}, {7,7}, {8,8}};
+            auto kv_pair = std::make_pair(6,6);
+            auto return_it = tree.insert(std::move(kv_pair)).first;
+            REQUIRE(return_it->first == 6);
+            REQUIRE(return_it->second == 6);
+        }
+
+        SECTION("Insert function returns the correct boolean value")
+        {
+            SECTION("Boolean value is correct when insertion succeeds")
+            {
+                AVLTree<int, int> tree = {{1,1}, {2,2}, {3,3}, {7,7}, {8,8}};
+                auto kv_pair = std::make_pair(6,6);
+                auto return_bool = tree.insert(std::move(kv_pair)).second;
+                REQUIRE(return_bool);
+            }
+
+            SECTION("Boolean value is correct when insertion fails")
+            {
+                AVLTree<int, int> tree = {{1,1}, {2,2}, {3,3}, {6,6}, {8,8}};
+                auto kv_pair = std::make_pair(6,6);
+                auto return_bool = tree.insert(std::move(kv_pair)).second;
+                REQUIRE_FALSE(return_bool);
+            }
+        }
+    }
+}
+
+TEST_CASE("AVLTree set_default function works as expected", "[AVLTree]")
+{
+    SECTION("set_default function works as expected if key already exists")
+    {
+        AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+        int default_val = 12;
+        auto ret_val = tree.set_default(1, default_val);
+        REQUIRE_FALSE(ret_val == default_val);
+        REQUIRE_FALSE(tree[1] == default_val);
+    }
+
+    SECTION("set_default function works as expected if key doesn't exist")
+    {
+        AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+        int default_val = 12;
+        auto ret_val = tree.set_default(6, default_val);
+        REQUIRE(ret_val == default_val);
+        REQUIRE(tree[6] == default_val);
+    }
+}
+
+TEST_CASE("AVLTree find function works as expected", "[AVLTree]")
+{
+    SECTION("find function returns an iterator to the element if it is found")
+    {
+        AVLTree<int, int> tree = {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+        auto it = tree.find(2);
+        REQUIRE(it->first == 2);
+        REQUIRE(it->second == 7);
+    }
+
+    SECTION("find function returns an end iterator if an element is not found")
+    {
+        AVLTree<int, int> tree = {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+        auto it = tree.find(6);
+        REQUIRE(it == tree.end());
+    }
+}
+
+TEST_CASE("Subscripting works correctly for an AVLTree", "[AVLTree]")
+{
+    SECTION("Subscripting returns the correct value for a key in the tree")
+    {
+        AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+        REQUIRE(tree[3] == 1);
+        REQUIRE(tree[4] == 8);
+    }
+
+    SECTION("Assignment with subscripting updates an existing key")
+    {
+        AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+        tree[3] = 142;
+        REQUIRE(tree[3] == 142);
+    }
+
+    SECTION("Assignment with subscripting inserts a key that doesn't already exist")
+    {
+        AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+        tree[6] = 142;
+        REQUIRE(tree[6] == 142);
+    }
+
+    SECTION("Subscripting inserts a default value if key does not exist")
+    {
+        AVLTree<int, int> tree {{1,4}, {2,7}, {3,1}, {4,8}, {5,2}};
+        tree[6];
+        REQUIRE(tree[6] == 0);
+    }
+}
+
+TEST_CASE("AVLTree erase function works as expected", "[AVLTree]")
+{
+    SECTION("Element can be erased by key")
+    {
+        AVLTree<int, int> tree = fill_tree_with_random_values();
+        std::vector<int> keys_in_tree {};
+        std::for_each(tree.begin(), tree.end(), [&keys_in_tree](auto elem){ keys_in_tree.push_back(elem.first); });
+        std::vector<int> even_keys_in_tree {};
+        std::transform(keys_in_tree.begin(), keys_in_tree.end(), std::back_inserter(even_keys_in_tree), [](int key) { return key % 2 == 0; });
+        std::for_each(even_keys_in_tree.begin(), even_keys_in_tree.end(), [&tree](int key){ tree.erase(key); });
+        std::vector<int> odd_keys_in_tree {};
+        std::set_difference(keys_in_tree.begin(), keys_in_tree.end(), even_keys_in_tree.begin(),
+                            even_keys_in_tree.end(), std::back_inserter(odd_keys_in_tree));
+        std::for_each(odd_keys_in_tree.begin(), odd_keys_in_tree.end(), [&tree](int key){ REQUIRE(tree.find(key) != tree.end()); });
+    }
+
+    SECTION("Element can be erased by iterator")
+    {
+        auto either_is_odd = [](const std::pair<int, int>& keyvalue) {
+            return std::abs(keyvalue.first % 2) == 1 || std::abs(keyvalue.second % 2) == 1;
+        };
+        auto both_are_even = [](const std::pair<int, int>& keyvalue) {
+            return keyvalue.first % 2 == 0 && keyvalue.second % 2 == 0;
+        };
+        AVLTree<int, int> tree = fill_tree_with_random_values();
+        for (auto it = tree.begin(); it != tree.end(); ) {
+            if (either_is_odd(*it)) {
+                it = tree.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        std::for_each(tree.begin(), tree.end(), [&](auto elem){ REQUIRE(both_are_even(elem)); });
     }
 }

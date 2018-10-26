@@ -156,7 +156,8 @@ TEST_CASE("DLinkedList can be constructed from iterator range", "[DLinkedList]")
 
     REQUIRE(dlist1.size() == num_insertions);
 
-    SECTION("lists have the same elements after iterator range construction") {
+    SECTION("Lists have the same elements after iterator range construction")
+    {
         DLinkedList<int> dlist2{dlist1.begin(), dlist1.end()};
         auto sum1 = std::accumulate(dlist1.begin(), dlist1.end(), 0);
         auto sum2 = std::accumulate(dlist2.begin(), dlist2.end(), 0);

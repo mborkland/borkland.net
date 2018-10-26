@@ -22,7 +22,13 @@ protected:
         BalanceType balance_info;        // parameter used for balancing
         std::unique_ptr<TreeNode> left = std::unique_ptr<TreeNode>(nullptr);
         std::unique_ptr<TreeNode> right = std::unique_ptr<TreeNode>(nullptr);
-        explicit TreeNode(std::pair<const KeyType, ValueType> data, TreeNode* parent = nullptr, BalanceType balance_info = {})
+        template<typename... Args,
+                 typename = std::enable_if_t<std::is_constructible_v<KeyType, Args&&...> &&
+                            std::is_constructible_v<ValueType, Args&&...>>>
+        explicit TreeNode(Args&&... args) : data{std::forward<Args>(args)...}, parent{nullptr}, balance_info{BalanceType{}} {}
+        explicit TreeNode(const std::pair<KeyType, ValueType>& data, TreeNode* parent = nullptr, BalanceType balance_info = {})
+                : data{data}, parent{parent}, balance_info{balance_info} {}
+        explicit TreeNode(std::pair<KeyType, ValueType>&& data, TreeNode* parent = nullptr, BalanceType balance_info = {})
                 : data{std::move(data)}, parent{parent}, balance_info{balance_info} {}
     };
 
@@ -218,17 +224,16 @@ template<typename... Args>
 std::pair<typename BinarySearchTree<BalanceType, KeyType, ValueType>::iterator, bool>
 BinarySearchTree<BalanceType, KeyType, ValueType>::emplace(Args&&... args)
 {
-    auto keyvalue = std::make_pair(args...);
-
+    auto keyvalue = std::pair<const key_type, mapped_type>(args...);
     if (empty()) {
         ++sz;
-        root = std::make_unique<TreeNode>(keyvalue);
+        root = std::make_unique<TreeNode>(std::move(keyvalue));
         rebalance_insert(root.get());
         iterator iter{root.get()};
         return std::make_pair(iter, true);
     };
 
-    return insert_node(find_node(keyvalue.first), std::move(keyvalue));
+    return insert_node(find_node(std::move(keyvalue.first)), std::move(keyvalue));
 }
 
 template<typename BalanceType, typename KeyType, typename ValueType>
@@ -243,7 +248,7 @@ template<typename BalanceType, typename KeyType, typename ValueType>
 std::pair<typename BinarySearchTree<BalanceType, KeyType, ValueType>::iterator, bool>
 BinarySearchTree<BalanceType, KeyType, ValueType>::insert(std::pair<const KeyType, ValueType>&& keyvalue)
 {
-    return emplace(std::move(keyvalue.first), std::move(keyvalue.second));
+    return emplace(std::forward<std::pair<const KeyType, ValueType>>(keyvalue));
 }
 
 template<typename BalanceType, typename KeyType, typename ValueType>
@@ -256,7 +261,7 @@ auto BinarySearchTree<BalanceType, KeyType, ValueType>::insert_node(std::pair<Tr
     TreeNode* new_node {};
     if (node) {
         iter.node = node;
-        return std::pair<iterator, bool>{iter, false};
+        return std::make_pair(iter, false);
     } else if (keyvalue.first > (parent->data).first) {
         create_node(parent->right, parent, std::move(keyvalue));
         new_node = parent->right.get();
@@ -268,7 +273,7 @@ auto BinarySearchTree<BalanceType, KeyType, ValueType>::insert_node(std::pair<Tr
     ++sz;
     rebalance_insert(new_node);
     iter.node = new_node;
-    return std::pair<iterator, bool>{iter, true};
+    return std::make_pair(iter, true);
 }
 
 template<typename BalanceType, typename KeyType, typename ValueType>

@@ -20,16 +20,19 @@ set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/catch)
 add_library(Catch INTERFACE)
 target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 
-set(DLINKEDLIST_SOURCE_FILES data-structures/test/tests-DLinkedList.cpp data-structures/test/tests-main.o)
+set(CATCH_OBJECT_FILE data-structures/test/tests-main.o)
+set(DS_TEST_DIR data-structures/test)
+
+set(DLINKEDLIST_SOURCE_FILES ${DS_TEST_DIR}/tests-DLinkedList.cpp ${CATCH_OBJECT_FILE})
 add_executable(tests-DLinkedList ${DLINKEDLIST_SOURCE_FILES})
 target_link_libraries(tests-DLinkedList Catch)
 
-set(SLINKEDLIST_SOURCE_FILES data-structures/test/tests-SLinkedList.cpp data-structures/test/tests-main.o)
+set(SLINKEDLIST_SOURCE_FILES ${DS_TEST_DIR}/tests-SLinkedList.cpp ${CATCH_OBJECT_FILE})
 add_executable(tests-SLinkedList ${SLINKEDLIST_SOURCE_FILES})
 target_link_libraries(tests-SLinkedList Catch)
 
-set(AVLTREE_SOURCE_FILES data-structures/test/tests-AVLTree.cpp)
+set(AVLTREE_SOURCE_FILES ${DS_TEST_DIR}/tests-AVLTree.cpp ${CATCH_OBJECT_FILE})
 add_executable(tests-AVLTree ${AVLTREE_SOURCE_FILES})
 
-set(REDBLACKTREE_SOURCE_FILES data-structures/test/tests-RedBlackTree.cpp)
+set(REDBLACKTREE_SOURCE_FILES ${DS_TEST_DIR}/tests-RedBlackTree.cpp ${CATCH_OBJECT_FILE})
 add_executable(tests-RedBlackTree ${REDBLACKTREE_SOURCE_FILES})

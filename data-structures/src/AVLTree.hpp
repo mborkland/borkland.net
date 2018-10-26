@@ -146,12 +146,12 @@ bool AVLTree<KeyType, ValueType>::rebalance(TreeNode* node)
 template<typename KeyType, typename ValueType>
 void AVLTree<KeyType, ValueType>::delete_node(TreeNode* node)
 {
-    --sz;
     if (node == root.get() && sz == 1) { // only one node in the tree
         clear();
         return;
     }
 
+    --sz;
     auto node_to_rebalance = node->parent;  // the node where rebalancing will begin
     if (!node->left) {  // case 1: no children or only right child
         single_transplant(node, node->right);
