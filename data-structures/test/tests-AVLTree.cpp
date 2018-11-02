@@ -175,7 +175,7 @@ TEST_CASE("AVLTree size function returns correct value", "[AVLTree]")
         REQUIRE(tree.size() == num_added);
     }
 
-    SECTION("Tree with elements removed has correct size")
+/*    SECTION("Tree with elements removed has correct size")
     {
         num_added = 0;
         auto tree = fill_tree_with_random_values();
@@ -184,7 +184,7 @@ TEST_CASE("AVLTree size function returns correct value", "[AVLTree]")
             it = tree.erase(it);
         }
         REQUIRE(tree.size() == num_added / 2);
-    }
+    }*/
 
     SECTION("Cleared tree has the correct size")
     {

@@ -4,7 +4,7 @@ project(source_files)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_COMPILER "C:/msys64/mingw64/bin/clang++.exe")
 set(CLANG++_COMPILER_FLAGS "-Wall -Werror -pedantic -Wconversion")
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}" )
+set(CMAKE_CXX_FLAGS  "${CLANG++_COMPILER_FLAGS}" )
 
 include_directories(algorithms/sorting/heapsort)
 include_directories(algorithms/sorting/insertion-sort)

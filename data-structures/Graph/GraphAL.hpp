@@ -1,5 +1,5 @@
-#ifndef GRAPHAL_HPP
-#define GRAPHAL_HPP
+#ifndef GRAPH_AL_HPP
+#define GRAPH_AL_HPP
 
 #include "Vertex.hpp"
 #include <iostream>
@@ -44,22 +44,19 @@ class GraphAL
 private:
     std::vector<Vertex<V>> vertices;           // the vertices and their associated data
     std::vector<std::map<size_t, W>> adj_list;  // Graph adjacency list
-    size_t current_key;           // the next Vertex added will have this key
+    size_t current_key = 0;           // the next Vertex added will have this key
     size_t highest_key() { return adj_list.size() - 1; }
-    inline std::map<size_t, W> &neighbors(size_t vertex) { return adj_list[vertex]; }
+    inline std::map<size_t, W>& neighbors(size_t vertex) { return adj_list[vertex]; }
+    bool is_weighted;
+    bool is_directed;
+    bool is_labeled;
+    bool data_is_key;
+    GraphAL(bool is_weighted, bool is_directed, bool is_labeled, bool data_is_key)
+            : current_key{0}, is_weighted{is_weighted}, is_directed{is_directed},
+              is_labeled{is_labeled}, data_is_key(data_is_key) {}
 
 public:
-    const bool weighted;             // is the graph weighted?
-    static bool set_weighted(const std::string &params) { return (params.find('w') != std::string::npos); }
-    const bool directed;             // is the graph directed?
-    static bool set_directed(const std::string &params) { return (params.find('d') != std::string::npos); }
-    const bool labeled;              // is the graph labeled?
-    static bool set_labeled(const std::string &params) { return (params.find('l') != std::string::npos); }
-    const bool data_is_key;       // do the vertices hold satellite data?
-
-    GraphAL(const std::string &params = "", bool data_is_key = true)
-            : current_key(0), weighted(set_weighted(params)), directed(set_directed(params)),
-              labeled(set_labeled(params)), data_is_key(data_is_key) {}
+   
     void add_vertex(const std::initializer_list<std::pair<const size_t, W>> &outgoing_edges,
                     const std::initializer_list<std::pair<const size_t, W>> &incoming_edges,
                     const std::string &label = {}, const V &data = {});
@@ -112,12 +109,12 @@ void GraphAL<V, W>::add_vertex(const std::initializer_list<std::pair<const size_
         throw std::invalid_argument("Invalid edge in initializer list.");
     }
 
-    Vertex<V> vertex(current_key, data, label, labeled, data_is_key);
+    Vertex<V> vertex(current_key, data, label, is_labeled, data_is_key);
     vertices.push_back(vertex);
     std::map<size_t, W> temp(outgoing_edges);
     adj_list.push_back(temp);
 
-    for (const auto &x : (directed ? incoming_edges : outgoing_edges))
+    for (const auto &x : (is_directed ? incoming_edges : outgoing_edges))
     {
         adj_list[x.first].insert({current_key, x.second});
     }
@@ -152,10 +149,10 @@ void GraphAL<V, W>::add_edge(const size_t orig, const size_t dest, const W &weig
         throw std::out_of_range("Invalid vertex.");
 
     std::pair<size_t, W> edge_pair;
-    if (!weighted)
+    if (!is_weighted)
     {
         if (!std::is_same<W, int>::value)
-            throw std::invalid_argument("Unweighted graph must have weight of type int.");
+            throw std::invalid_argument("Unis_weighted graph must have weight of type int.");
         edge_pair = std::make_pair(dest, 1);
     }
     else
@@ -165,7 +162,7 @@ void GraphAL<V, W>::add_edge(const size_t orig, const size_t dest, const W &weig
 
     adj_list[orig].insert(edge_pair);
 
-    if (!directed)
+    if (!is_directed)
     {
         adj_list[dest].insert({orig, weight});
     }
@@ -176,12 +173,12 @@ void GraphAL<V, W>::print_adj_list() const
 {
     for (size_t i = 0; i < adj_list.size(); ++i)
     {
-        labeled ? std::cout << vertices[i].label : std::cout << i;
+        is_labeled ? std::cout << vertices[i].label : std::cout << i;
         std::cout << ": ";
         for (const auto &x : adj_list[i])
         {
             std::cout << x.first;
-            if (weighted)
+            if (is_weighted)
             {
                 std::cout << '/' << x.second;
             }
@@ -218,7 +215,7 @@ std::vector<BFSData> GraphAL<V, W>::bfs(size_t start, std::function<void(size_t)
         for (const auto &neighbor : neighbors(orig))
         {
             size_t dest = neighbor.first;
-            if (process_during && (status[dest] != processed || directed))
+            if (process_during && (status[dest] != processed || is_directed))
             {
                 process_during(orig, neighbor);
             }
@@ -286,7 +283,7 @@ void GraphAL<V, W>::dfs_visit(size_t orig, std::vector<DFSData> &data, std::vect
             }
             dfs_visit(dest, data, status, time, process_before, process_during, process_after);
         }
-        else if (process_during && (status[dest] != processed || directed))
+        else if (process_during && (status[dest] != processed || is_directed))
         {
             process_during(orig, neighbor);
         }
