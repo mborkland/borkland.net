@@ -14,14 +14,14 @@ enum class SearchStatus
 struct BFSData
 {
     std::size_t distance = std::numeric_limits<std::size_t>::max();
-    int parent = std::numeric_limits<std::size_t>::max();
+    std::size_t parent = std::numeric_limits<std::size_t>::max();
 };
 
 struct DFSData
 {
     size_t d_time;
     size_t f_time;
-    int parent = std::numeric_limits<std::size_t>::max();
+    std::size_t parent = std::numeric_limits<std::size_t>::max();
 };
 
 template<typename AdjStructureType, typename V = size_t, typename W = int>
@@ -32,7 +32,7 @@ private:
     AdjStructureType adj_structure;          // holds vertex neighbor data
     size_t current_key = 0;
     size_t highest_key() { return  adj_structure.size() - 1; }
-    AdjStructureType neighbors(std::size_t vertex) = 0;
+    virtual AdjStructureType neighbors(std::size_t vertex) = 0;
     bool is_weighted;
     bool is_directed;
     bool is_labeled;
@@ -43,9 +43,9 @@ private:
 
 public:
     // TODO: add_vertex functions
-    void remove_vertex(std::size_t key) = 0;
-    void remove_vertex(const std::string& label) = 0;
-    void add_edge(size_t orig, size_t dest, const W& weight = {}) = 0;
+    virtual void remove_vertex(std::size_t key) = 0;
+    virtual void remove_vertex(const std::string& label) = 0;
+    virtual void add_edge(size_t orig, size_t dest, const W& weight = {}) = 0;
 
 
 

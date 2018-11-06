@@ -1,62 +1,35 @@
 #ifndef GRAPH_AL_HPP
 #define GRAPH_AL_HPP
 
-#include "Vertex.hpp"
 #include <iostream>
 #include <type_traits>
 #include <vector>
 #include <queue>
 #include <stack>
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <algorithm>
 #include <functional>
 #include <limits>
-
-enum class SearchStatus
-{
-    undiscovered, discovered, processed
-};
-
-constexpr SearchStatus undiscovered = SearchStatus::undiscovered;
-constexpr SearchStatus discovered = SearchStatus::discovered;
-constexpr SearchStatus processed = SearchStatus::processed;
-
-struct BFSData
-{
-    size_t distance;
-    int parent;
-    BFSData() : distance(std::numeric_limits<std::size_t>::max()),
-                parent(-1) {}
-};
-
-struct DFSData
-{
-    size_t d_time;
-    size_t f_time;
-    int parent;
-    DFSData() : parent(-1) {}
-};
+#include "Graph.hpp"
 
 template<typename V = size_t, typename W = int>
-class GraphAL
+class GraphAL : public Graph<std::vector<std::unordered_map<size_t, W>>, V, W>
 {
 private:
-    std::vector<Vertex<V>> vertices;           // the vertices and their associated data
-    std::vector<std::map<size_t, W>> adj_list;  // Graph adjacency list
-    size_t current_key = 0;           // the next Vertex added will have this key
-    size_t highest_key() { return adj_list.size() - 1; }
-    inline std::map<size_t, W>& neighbors(size_t vertex) { return adj_list[vertex]; }
-    bool is_weighted;
-    bool is_directed;
-    bool is_labeled;
-    bool data_is_key;
+    using AdjListType = std::vector<std::unordered_map<size_t,W>>;
+    using Graph<AdjListType, V, W>::vertices;
+    using Graph<AdjListType, V, W>::adj_structure;
+    using Graph<AdjListType, V, W>::current_key;
+    using Graph<AdjListType, V, W>::highest_key;
+    using Graph<AdjListType, V, W>::is_weighted;
+    using Graph<AdjListType, V, W>::is_directed;
+    using Graph<AdjListType, V, W>::is_labeled;
+    using Graph<AdjListType, V, W>::data_is_key;
     GraphAL(bool is_weighted, bool is_directed, bool is_labeled, bool data_is_key)
-            : current_key{0}, is_weighted{is_weighted}, is_directed{is_directed},
-              is_labeled{is_labeled}, data_is_key(data_is_key) {}
+            : Graph<AdjListType, V, W>::Graph(is_weighted, is_directed, is_labeled, data_is_key) {}
 
 public:
-   
     void add_vertex(const std::initializer_list<std::pair<const size_t, W>> &outgoing_edges,
                     const std::initializer_list<std::pair<const size_t, W>> &incoming_edges,
                     const std::string &label = {}, const V &data = {});
@@ -71,8 +44,10 @@ public:
     inline void add_vertex(const std::initializer_list<std::pair<const size_t, W>> &outgoing_edges,
                            const std::initializer_list<std::pair<const size_t, W>> &incoming_edges, const std::string &label)
                           { add_vertex(outgoing_edges, incoming_edges, label, {}); }
-    void remove_vertex(const size_t key);
-    void add_edge(const size_t orig, const size_t dest, const W &weight = {});
+
+    void remove_vertex(size_t key) override;
+    void remove_vertex(const std::string& label) override;
+    void add_edge(size_t orig, size_t dest, const W& weight = {}) override;
     void print_adj_list() const;
     std::vector<BFSData> bfs(size_t start, std::function<void(size_t)> process_before = {},
                              std::function<void(size_t, const std::pair<const size_t, W>&)> process_during = {},
