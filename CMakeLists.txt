@@ -3,7 +3,7 @@ project(source_files)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_COMPILER "C:/msys64/mingw64/bin/clang++.exe")
-set(CLANG++_COMPILER_FLAGS "-Wall -Werror -pedantic -Wconversion")
+set(CLANG++_COMPILER_FLAGS "-Wall -Werror -pedantic -Wconversion -O3")
 set(CMAKE_CXX_FLAGS  "${CLANG++_COMPILER_FLAGS}" )
 
 include_directories(algorithms/sorting/heapsort)
@@ -22,6 +22,7 @@ target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 
 set(CATCH_OBJECT_FILE data-structures/test/tests-main.o)
 set(DS_TEST_DIR data-structures/test)
+set(ALG_TEST_DIR algorithms/test)
 
 set(DLINKEDLIST_SOURCE_FILES ${DS_TEST_DIR}/tests-DLinkedList.cpp ${CATCH_OBJECT_FILE})
 add_executable(tests-DLinkedList ${DLINKEDLIST_SOURCE_FILES})
@@ -36,3 +37,5 @@ add_executable(tests-AVLTree ${AVLTREE_SOURCE_FILES})
 
 set(REDBLACKTREE_SOURCE_FILES ${DS_TEST_DIR}/tests-RedBlackTree.cpp ${CATCH_OBJECT_FILE})
 add_executable(tests-RedBlackTree ${REDBLACKTREE_SOURCE_FILES})
+
+add_executable(heapsort-benchmark ${ALG_TEST_DIR}/heapsort-benchmark.cpp)
