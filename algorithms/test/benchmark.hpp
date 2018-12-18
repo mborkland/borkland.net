@@ -11,7 +11,7 @@ namespace bork_lib
 
 using iter_type = std::vector<int>::iterator;
 
-void benchmark(std::function<void(iter_type, iter_type)> func, int min, int max, int step)
+void benchmark(const std::function<void(iter_type, iter_type)>& func, int min, int max, int step)
 {
     std::default_random_engine re {};
     std::vector<int> vec;

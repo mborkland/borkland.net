@@ -38,4 +38,7 @@ add_executable(tests-AVLTree ${AVLTREE_SOURCE_FILES})
 set(REDBLACKTREE_SOURCE_FILES ${DS_TEST_DIR}/tests-RedBlackTree.cpp ${CATCH_OBJECT_FILE})
 add_executable(tests-RedBlackTree ${REDBLACKTREE_SOURCE_FILES})
 
+set(UNIONFIND_SOURCE_FILES ${DS_TEST_DIR}/tests-UnionFind.cpp ${CATCH_OBJECT_FILE})
+add_executable(tests-UnionFind ${UNIONFIND_SOURCE_FILES})
+
 add_executable(heapsort-benchmark ${ALG_TEST_DIR}/heapsort-benchmark.cpp)
