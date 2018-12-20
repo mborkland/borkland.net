@@ -34,11 +34,18 @@ target_link_libraries(tests-SLinkedList Catch)
 
 set(AVLTREE_SOURCE_FILES ${DS_TEST_DIR}/tests-AVLTree.cpp ${CATCH_OBJECT_FILE})
 add_executable(tests-AVLTree ${AVLTREE_SOURCE_FILES})
+target_link_libraries(tests-AVLTree Catch)
 
 set(REDBLACKTREE_SOURCE_FILES ${DS_TEST_DIR}/tests-RedBlackTree.cpp ${CATCH_OBJECT_FILE})
 add_executable(tests-RedBlackTree ${REDBLACKTREE_SOURCE_FILES})
+target_link_libraries(tests-RedBlackTree Catch)
 
 set(UNIONFIND_SOURCE_FILES ${DS_TEST_DIR}/tests-UnionFind.cpp ${CATCH_OBJECT_FILE})
 add_executable(tests-UnionFind ${UNIONFIND_SOURCE_FILES})
+target_link_libraries(tests-UnionFind Catch)
+
+set(UNIONFIND_SOURCE_FILES ${DS_TEST_DIR}/tests-PriorityQueue.cpp ${CATCH_OBJECT_FILE})
+add_executable(tests-PriorityQueue ${UNIONFIND_SOURCE_FILES})
+target_link_libraries(tests-PriorityQueue Catch)
 
 add_executable(heapsort-benchmark ${ALG_TEST_DIR}/heapsort-benchmark.cpp)
