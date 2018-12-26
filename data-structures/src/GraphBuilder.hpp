@@ -4,6 +4,9 @@
 #include "GraphAL.hpp"
 #include "GraphAM.hpp"
 
+namespace bork_lib
+{
+
 template<typename V = std::size_t, typename W = int>
 class GraphBuilder
 {
@@ -83,5 +86,7 @@ GraphAM<V, W> GraphBuilder<V, W>::build_adj_matrix()
     validation_check();
     return GraphAM<V, W>{is_weighted, is_directed, is_labeled, data_is_key};
 }
+
+} // end namespace
 
 #endif

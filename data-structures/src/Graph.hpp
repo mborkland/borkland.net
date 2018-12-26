@@ -6,10 +6,14 @@
 #include <stack>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 #include "Vertex.hpp"
+
+namespace bork_lib
+{
 
 enum class SearchStatus
 {
@@ -34,22 +38,22 @@ struct DFSData
 template<typename AdjStructureType, typename V = size_t, typename W = int>
 class Graph
 {
-private:
+protected:
     std::vector<Vertex<V>> vertices;         // the vertices and their associated data
     AdjStructureType adj_structure;          // holds vertex neighbor data
     std::unordered_map<std::string, std::size_t> labels_to_keys;  // maps labeled vertices to their key values
     std::size_t current_key = 0;
-    std::size_t highest_key() { return adj_structure.size() - 1; }
-    template<typename... Ts> void valid_vertex_check(Ts... keys);
-    void valid_edge_check(std::size_t orig, std::size_t dest);
-    virtual std::unordered_map<std::size_t, W> neighbors(std::size_t vertex) = 0;
+    std::size_t highest_key() const { return adj_structure.size() - 1; }
+    template<typename... Ts> void valid_vertex_check(Ts... keys) const;
+    template<typename... Ts> auto valid_label_check(Ts... labels) const;
+    std::unordered_map<std::string, W> create_label_map(const std::unordered_map<std::size_t, W>& key_map) const;
     bool is_weighted;
     bool is_directed;
     bool is_labeled;
     bool data_is_key;
     Graph(bool is_weighted, bool is_directed, bool is_labeled, bool data_is_key)
-          : is_weighted{is_weighted}, is_directed{is_directed}, is_labeled{is_labeled},
-            data_is_key{data_is_key} {}
+            : is_weighted{is_weighted}, is_directed{is_directed}, is_labeled{is_labeled},
+              data_is_key{data_is_key} {}
 
 public:
     Graph(const Graph<AdjStructureType, V, W>&) = default;
@@ -59,7 +63,7 @@ public:
 
     virtual void add_vertex(const std::initializer_list<std::pair<const std::size_t, W>> &outgoing_edges,
                             const std::initializer_list<std::pair<const std::size_t, W>> &incoming_edges,
-                            const V& data, const std::string& label) = 0;
+                            const V& data, const std::string& label);
     void add_vertex() { add_vertex({}, {}, {}, {}); }
     void add_vertex(const V& data, const std::string& label = {}) { add_vertex({}, {}, data, label); }
     void add_vertex(const std::string label) { add_vertex({}, {}, {}, label); }
@@ -74,7 +78,7 @@ public:
                     const std::initializer_list<std::pair<const std::size_t, W>> &incoming_edges, const std::string& label)
                     { add_vertex(outgoing_edges, incoming_edges, {}, label); }
 
-    virtual void remove_vertex(std::size_t key) = 0;
+    virtual void remove_vertex(std::size_t key);
     virtual void remove_vertex(const std::string& label) = 0;
 
     virtual void add_edge(std::size_t orig, std::size_t dest, const W& weight) = 0;
@@ -82,6 +86,9 @@ public:
 
     virtual void remove_edge(std::size_t orig, std::size_t dest) = 0;
     virtual void remove_edge(const std::string& orig, const std::string& dest) = 0;
+
+    virtual std::unordered_map<std::size_t, W> neighbors(std::size_t vertex) const = 0;
+    virtual std::unordered_map<std::string, W> neighbors(const std::string& vertex) const = 0;
 
     template<typename BeforeFunc, typename DuringFunc, typename AfterFunc>
     std::vector<BFSData> bfs(std::size_t start, BeforeFunc&& process_before = {}, DuringFunc&& process_during = {},
@@ -108,7 +115,7 @@ public:
 
 template<typename AdjStructureType, typename V, typename W>
 template<typename... Ts>
-void Graph<AdjStructureType, V, W>::valid_vertex_check(Ts... keys)
+void Graph<AdjStructureType, V, W>::valid_vertex_check(Ts... keys) const
 {
     if ((keys || ...) > highest_key()) {
         throw std::out_of_range("Invalid vertex.");
@@ -116,9 +123,65 @@ void Graph<AdjStructureType, V, W>::valid_vertex_check(Ts... keys)
 }
 
 template<typename AdjStructureType, typename V, typename W>
-void Graph<AdjStructureType, V, W>::valid_edge_check(std::size_t orig, std::size_t dest)
+template<typename... Ts>
+auto Graph<AdjStructureType, V, W>::valid_label_check(Ts... labels) const
 {
-    
+    try {
+        auto keys = std::make_tuple(labels_to_keys.at(labels)...);
+        return keys;
+    } catch (const std::out_of_range& e) {
+        throw std::out_of_range("Vertice with given label does not exist in graph.");
+    }
+}
+
+template<typename AdjStructureType, typename V, typename W>
+std::unordered_map<std::string, W> Graph<AdjStructureType, V, W>::create_label_map(const std::unordered_map<std::size_t, W>& key_map) const
+{
+    std::unordered_map<std::string, W> label_map;
+    for (const auto& key_pair : key_map) {
+        const auto& label = vertices[key_pair.first].label();
+        label_map[label] = key_pair.second;
+    }
+
+    return label_map;
+}
+
+template<typename AdjStructureType, typename V, typename W>
+void Graph<AdjStructureType, V, W>::add_vertex(const std::initializer_list<std::pair<const std::size_t, W>> &outgoing_edges,
+                                               const std::initializer_list<std::pair<const std::size_t, W>> &incoming_edges,
+                                               const V& data, const std::string& label)
+{
+    std::size_t max_out = 0;
+    std::size_t max_in = 0;
+    auto comp = [](const std::pair<std::size_t, W>& e1, const std::pair<std::size_t, W>& e2) { return e1.first < e2.first; };
+    if (outgoing_edges.size()) {               // make sure vertices are valid
+        max_out = std::max(outgoing_edges, comp).first;
+    }
+    if (incoming_edges.size()) {
+        max_in = std::max(incoming_edges, comp).first;
+    }
+
+    if (max_out > adj_structure.size() || max_in > adj_structure.size()) {
+        throw std::invalid_argument("Invalid edge in initializer list.");
+    }
+
+    Vertex<V> vertex{data_is_key, is_labeled, current_key, data_is_key ? current_key : data, is_labeled ? label : ""};
+    vertices.push_back(vertex);
+
+    if (is_labeled) {
+        if (!labels_to_keys.insert({label, current_key}).second) {
+            throw std::invalid_argument("Vertex with label already exists in graph.");
+        }
+    }
+}
+
+template<typename AdjStructureType, typename V, typename W>
+void Graph<AdjStructureType, V, W>::remove_vertex(std::size_t key)
+{
+    auto signed_key = static_cast<long long>(key);
+    adj_structure.erase(adj_structure.begin() + signed_key);
+    labels_to_keys.erase(vertices[key].label());
+    vertices.erase(vertices.begin() + signed_key);
 }
 
 template<typename AdjStructureType, typename V, typename W>
@@ -285,5 +348,7 @@ void Graph<AdjStructureType, V, W>::dfs_visit(std::size_t orig, std::vector<DFSD
     ++time;
     data[orig].f_time = time;
 }
+
+} // end namespace
 
 #endif

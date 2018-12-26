@@ -48,4 +48,12 @@ set(UNIONFIND_SOURCE_FILES ${DS_TEST_DIR}/tests-PriorityQueue.cpp ${CATCH_OBJECT
 add_executable(tests-PriorityQueue ${UNIONFIND_SOURCE_FILES})
 target_link_libraries(tests-PriorityQueue Catch)
 
+set(GRAPHAL_SOURCE_FILES ${DS_TEST_DIR}/tests-GraphAL.cpp ${CATCH_OBJECT_FILE})
+add_executable(tests-GraphAL ${GRAPHAL_SOURCE_FILES})
+target_link_libraries(tests-GraphAL Catch)
+
+set(GRAPHAM_SOURCE_FILES ${DS_TEST_DIR}/tests-GraphAM.cpp ${CATCH_OBJECT_FILE})
+add_executable(tests-GraphAM ${GRAPHAM_SOURCE_FILES})
+target_link_libraries(tests-GraphAM Catch)
+
 add_executable(heapsort-benchmark ${ALG_TEST_DIR}/heapsort-benchmark.cpp)

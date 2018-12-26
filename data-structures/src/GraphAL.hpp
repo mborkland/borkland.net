@@ -1,29 +1,37 @@
 #ifndef GRAPH_AL_HPP
 #define GRAPH_AL_HPP
 
-#include <iostream>
-#include <type_traits>
-#include <vector>
 #include <algorithm>
 #include <functional>
+#include <iostream>
+#include <iterator>
+#include <type_traits>
+#include <vector>
 #include "Graph.hpp"
+
+namespace bork_lib
+{
+
+template<typename V, typename W> class GraphBuilder;
 
 template<typename V = std::size_t, typename W = int>
 class GraphAL : public Graph<std::vector<std::unordered_map<std::size_t, W>>, V, W>
 {
 private:
-    using AdjListType = std::vector<std::unordered_map<std::size_t,W>>;
+    using AdjType = std::unordered_map<std::size_t, W>;
+    using AdjListType = std::vector<AdjType>;
     using Graph<AdjListType, V, W>::vertices;
     using Graph<AdjListType, V, W>::adj_structure;
     using Graph<AdjListType, V, W>::current_key;
     using Graph<AdjListType, V, W>::highest_key;
     using Graph<AdjListType, V, W>::valid_vertex_check;
-    using Graph<AdjListType, V, W>::valid_edge_check;
+    using Graph<AdjListType, V, W>::valid_label_check;
     using Graph<AdjListType, V, W>::is_weighted;
     using Graph<AdjListType, V, W>::is_directed;
     using Graph<AdjListType, V, W>::is_labeled;
     using Graph<AdjListType, V, W>::data_is_key;
     using Graph<AdjListType, V, W>::labels_to_keys;
+
     GraphAL(bool is_weighted, bool is_directed, bool is_labeled, bool data_is_key)
             : Graph<AdjListType, V, W>::Graph(is_weighted, is_directed, is_labeled, data_is_key) {}
 
@@ -36,7 +44,7 @@ public:
 
     GraphAL(const GraphAL<V, W>&) = default;
     GraphAL(GraphAL<V, W>&&) noexcept = default;
-    GraphAL& operator=(const GraphAL<V, W>&) noexcept = default;
+    GraphAL& operator=(const GraphAL<V, W>&) = default;
     GraphAL& operator=(GraphAL<V, W>&&) noexcept = default;
 
     void add_vertex(const std::initializer_list<std::pair<const std::size_t, W>> &outgoing_edges,
@@ -51,7 +59,12 @@ public:
     void remove_edge(std::size_t orig, std::size_t dest) override;
     void remove_edge(const std::string& orig, const std::string& dest) override;
 
+    AdjType neighbors(std::size_t vertex) const override;
+    std::unordered_map<std::string, W> neighbors(const std::string& vertex) const override;
+
     void print_adj_structure() const override;
+
+    friend GraphBuilder<V, W>;
 };
 
 template<typename V, typename W>
@@ -59,33 +72,11 @@ void GraphAL<V, W>::add_vertex(const std::initializer_list<std::pair<const std::
                                const std::initializer_list<std::pair<const std::size_t, W>> &incoming_edges,
                                const V& data, const std::string& label)
 {
-    std::size_t max_out = 0;
-    std::size_t max_in = 0;
-    auto comp = [](const std::pair<std::size_t, W>& e1, const std::pair<std::size_t, W>& e2) { return e1.first < e2.first; };
-    if (outgoing_edges.size()) {               // make sure vertices are valid
-        max_out = std::max(outgoing_edges, comp).first;
-    }
-    if (incoming_edges.size()) {
-        max_in = std::max(incoming_edges, comp).first;
-    }
-
-    if (max_out > adj_structure.size() || max_in > adj_structure.size()) {
-        throw std::invalid_argument("Invalid edge in initializer list.");
-    }
-
-    Vertex<V> vertex{data_is_key, is_labeled, current_key, data_is_key ? current_key : data, is_labeled ? label : ""};
-    vertices.push_back(vertex);
-    std::unordered_map<std::size_t, W> temp{outgoing_edges};
+    Graph<AdjListType, V, W>::add_vertex(outgoing_edges, incoming_edges, data, label);
+    AdjType temp{outgoing_edges};
     adj_structure.push_back(temp);
-
-    for (const auto& vrtx : (is_directed ? incoming_edges : outgoing_edges)) {
-        adj_structure[vrtx.first].insert({current_key, vrtx.second});
-    }
-
-    if (is_labeled) {
-        if (!labels_to_keys.insert({label, current_key}).second) {
-            throw std::invalid_argument("Vertex with label already exists in graph.");
-        }
+    for (const auto& edge_pair : (is_directed ? incoming_edges : outgoing_edges)) {
+        adj_structure[edge_pair.first].insert({current_key, edge_pair.second});
     }
 
     ++current_key;
@@ -95,20 +86,22 @@ template<typename V, typename W>
 void GraphAL<V, W>::remove_vertex(std::size_t key)
 {
     valid_vertex_check(key);
-    for (const auto& vertex : adj_structure)
-    {
-        vertex.remove_if(vertex.begin(), vertex.end(), [key](std::pair<std::size_t, W>& edge){ return edge.first == key; });
-        for (const auto& neighbor : vertex)
-        {
-            if (neighbor.first > key) {   // adjust the values of the keys
-                --neighbor.first;
+    for (auto& vertex : adj_structure) {
+        for (auto it = vertex.begin(); it != vertex.end(); ) {  // remove the vertex
+            if (it->first == key) {
+                it = vertex.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        for (auto& neighbor : vertex) {
+            if (neighbor.second > key) {   // adjust the values of the keys
+                --neighbor.second;
             }
         }
     }
-    
-    adj_structure.erase(adj_structure.begin() + key);
-    labels_to_keys.erase(vertices[key].label());
-    vertices.erase(vertices.begin() + key);
+    Graph<AdjListType, V, W>::remove_vertex(key);
 }
 
 template<typename V, typename W>
@@ -118,11 +111,9 @@ void GraphAL<V, W>::remove_vertex(const std::string& label)
         throw std::logic_error("Cannot use this function with unlabeled graph.");
     }
 
-    try {
-        remove_vertex(labels_to_keys.at(label));
-    } catch (const std::out_of_range& e) {
-        throw std::out_of_range("Vertice with given label does not exist in graph.");
-    }
+    using namespace std::placeholders;
+    auto func = std::bind(static_cast<void(GraphAL<V, W>::*)(std::size_t)>(&GraphAL<V, W>::remove_vertex), this, _1);
+    std::apply(func, valid_label_check(label));
 }
 
 template<typename V, typename W>
@@ -144,7 +135,7 @@ void GraphAL<V, W>::remove_edge(std::size_t orig, std::size_t dest)
     if (!adj_structure[orig].erase(dest)) {
         throw std::out_of_range("Edge does not exist in graph.");
     }
-    
+
     if (!is_weighted) {
         adj_structure[dest].erase(orig);
     }
@@ -153,18 +144,29 @@ void GraphAL<V, W>::remove_edge(std::size_t orig, std::size_t dest)
 template<typename V, typename W>
 void GraphAL<V, W>::remove_edge(const std::string& orig, const std::string& dest)
 {
-    try {
-        remove_edge(labels_to_keys.at(orig), labels_to_keys.at(dest));
-    } catch (const std::out_of_range& e) {
-        throw std::out_of_range("Vertice with given label does not exist in graph.");
-    }
+    using namespace std::placeholders;
+    auto func = std::bind(static_cast<void(GraphAL<V, W>::*)(std::size_t, std::size_t)>(&GraphAL<V, W>::remove_edge), this, _1, _2);
+    std::apply(func, valid_label_check(orig, dest));
+}
+
+template<typename V, typename W>
+typename GraphAL<V, W>::AdjType GraphAL<V, W>::neighbors(std::size_t vertex) const
+{
+    valid_vertex_check(vertex);
+    return adj_structure[vertex];
+}
+
+template<typename V, typename W>
+std::unordered_map<std::string, W> GraphAL<V, W>::neighbors(const std::string& vertex) const
+{
+    return create_label_map(adj_structure[std::get<0>(valid_label_check(vertex))]);
 }
 
 template<typename V, typename W>
 void GraphAL<V, W>::print_adj_structure() const
 {
     for (std::size_t i = 0; i < adj_structure.size(); ++i) {
-        is_labeled ? std::cout << vertices[i].label : std::cout << i;
+        is_labeled ? std::cout << vertices[i].label() : std::cout << i;
         std::cout << ": ";
         for (const auto &x : adj_structure[i]) {
             std::cout << x.first;
@@ -180,5 +182,7 @@ void GraphAL<V, W>::print_adj_structure() const
 }
 
 // TODO: add Kruskal's, Prim's, Dijkstra's, etc.
+
+} // end namespace
 
 #endif
