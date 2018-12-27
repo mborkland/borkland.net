@@ -38,7 +38,7 @@ public:
     const std::string& label() const
     {
         if (!labeled) {
-            throw std::logic_error("Label does not exist for unlabeled graph.");
+            throw std::logic_error("Label does not exist for unlabeled vertex.");
         }
 
         return vertex_label;

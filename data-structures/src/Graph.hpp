@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -35,6 +36,13 @@ struct DFSData
     std::size_t parent = std::numeric_limits<std::size_t>::max();
 };
 
+template<typename W, typename Enable = void> struct default_weight {};
+template<typename W>
+struct default_weight<W, std::enable_if_t<std::is_arithmetic_v<W>>>
+{
+    W operator()() const noexcept { return static_cast<W>(1); }
+};
+
 template<typename AdjStructureType, typename V = size_t, typename W = int>
 class Graph
 {
@@ -61,31 +69,32 @@ public:
     Graph<AdjStructureType, V, W>& operator=(const Graph<AdjStructureType, V, W>&) = default;
     Graph<AdjStructureType, V, W>& operator=(Graph<AdjStructureType, V, W>&&) noexcept = default;
 
-    virtual void add_vertex(const std::initializer_list<std::pair<const std::size_t, W>> &outgoing_edges,
-                            const std::initializer_list<std::pair<const std::size_t, W>> &incoming_edges,
+    virtual void add_vertex(const std::vector<std::pair<std::size_t, W>>& outgoing_edges,
+                            const std::vector<std::pair<std::size_t, W>>& incoming_edges,
                             const V& data, const std::string& label);
     void add_vertex() { add_vertex({}, {}, {}, {}); }
     void add_vertex(const V& data, const std::string& label = {}) { add_vertex({}, {}, data, label); }
     void add_vertex(const std::string label) { add_vertex({}, {}, {}, label); }
-    void add_vertex(const std::initializer_list<std::pair<const std::size_t, W>>& outgoing_edges, const V& data = {},
+    void add_vertex(const std::vector<std::pair<std::size_t, W>>& outgoing_edges, const V& data = {},
                     const std::string& label = {}) { add_vertex(outgoing_edges, {}, data, label); }
-    void add_vertex(const std::initializer_list<std::pair<const std::size_t, W>> &outgoing_edges,
-                    const std::initializer_list<std::pair<const std::size_t, W>> &incoming_edges, const V &data = {})
+    void add_vertex(const std::vector<std::pair<std::size_t, W>>& outgoing_edges,
+                    const std::vector<std::pair<std::size_t, W>>& incoming_edges, const V &data = {})
                     { add_vertex(outgoing_edges, incoming_edges, data, {}); }
-    void add_vertex(const std::initializer_list<std::pair<const std::size_t, W>>& outgoing_edges, const std::string& label)
+    void add_vertex(const std::vector<std::pair<std::size_t, W>>& outgoing_edges, const std::string& label)
                     { add_vertex(outgoing_edges, {}, {}, label); }
-    void add_vertex(const std::initializer_list<std::pair<const std::size_t, W>> &outgoing_edges,
-                    const std::initializer_list<std::pair<const std::size_t, W>> &incoming_edges, const std::string& label)
+    void add_vertex(const std::vector<std::pair<std::size_t, W>>& outgoing_edges,
+                    const std::vector<std::pair<std::size_t, W>>& incoming_edges, const std::string& label)
                     { add_vertex(outgoing_edges, incoming_edges, {}, label); }
 
     virtual void remove_vertex(std::size_t key);
-    virtual void remove_vertex(const std::string& label) = 0;
+    void remove_vertex(const std::string& label);
 
     virtual void add_edge(std::size_t orig, std::size_t dest, const W& weight) = 0;
     void add_edge(std::size_t orig, std::size_t dest) { add_edge(orig, dest, {}); }
+    void add_edge(const std::string& orig, const std::string& dest, const W& weight = {});
 
     virtual void remove_edge(std::size_t orig, std::size_t dest) = 0;
-    virtual void remove_edge(const std::string& orig, const std::string& dest) = 0;
+    void remove_edge(const std::string& orig, const std::string& dest);
 
     virtual std::unordered_map<std::size_t, W> neighbors(std::size_t vertex) const = 0;
     virtual std::unordered_map<std::string, W> neighbors(const std::string& vertex) const = 0;
@@ -104,10 +113,15 @@ public:
                    std::size_t& time, BeforeFunc&& process_before, DuringFunc&& process_during,
                    AfterFunc&& process_after) const;
 
+    Vertex<V>& operator[](std::size_t key);
+    const Vertex<V>& operator[](std::size_t key) const;
+    Vertex<V>& operator[](const std::string& label);
+    const Vertex<V>& operator[](const std::string& label) const;
     bool weighted() { return is_weighted; }
     bool directed() { return is_directed; }
     bool labeled() { return is_labeled; }
     bool has_satellite_data() { return !data_is_key; }
+    std::size_t size() { return vertices.size(); }
 
     // testing function
     virtual void print_adj_structure() const = 0;
@@ -126,6 +140,10 @@ template<typename AdjStructureType, typename V, typename W>
 template<typename... Ts>
 auto Graph<AdjStructureType, V, W>::valid_label_check(Ts... labels) const
 {
+    if (!is_labeled) {
+        throw std::logic_error("Cannot use this function with unlabeled graph.");
+    }
+
     try {
         auto keys = std::make_tuple(labels_to_keys.at(labels)...);
         return keys;
@@ -147,18 +165,18 @@ std::unordered_map<std::string, W> Graph<AdjStructureType, V, W>::create_label_m
 }
 
 template<typename AdjStructureType, typename V, typename W>
-void Graph<AdjStructureType, V, W>::add_vertex(const std::initializer_list<std::pair<const std::size_t, W>> &outgoing_edges,
-                                               const std::initializer_list<std::pair<const std::size_t, W>> &incoming_edges,
+void Graph<AdjStructureType, V, W>::add_vertex(const std::vector<std::pair<std::size_t, W>>& outgoing_edges,
+                                               const std::vector<std::pair<std::size_t, W>>& incoming_edges,
                                                const V& data, const std::string& label)
 {
     std::size_t max_out = 0;
     std::size_t max_in = 0;
     auto comp = [](const std::pair<std::size_t, W>& e1, const std::pair<std::size_t, W>& e2) { return e1.first < e2.first; };
     if (outgoing_edges.size()) {               // make sure vertices are valid
-        max_out = std::max(outgoing_edges, comp).first;
+        max_out = std::max_element(outgoing_edges.begin(), outgoing_edges.end(), comp)->first;
     }
     if (incoming_edges.size()) {
-        max_in = std::max(incoming_edges, comp).first;
+        max_in = std::max_element(incoming_edges.begin(), incoming_edges.end(), comp)->first;
     }
 
     if (max_out > adj_structure.size() || max_in > adj_structure.size()) {
@@ -176,12 +194,39 @@ void Graph<AdjStructureType, V, W>::add_vertex(const std::initializer_list<std::
 }
 
 template<typename AdjStructureType, typename V, typename W>
+void Graph<AdjStructureType, V, W>::add_edge(const std::string& orig, const std::string& dest, const W& weight)
+{
+    auto keys = valid_label_check(orig, dest);
+    add_edge(std::get<0>(keys), std::get<1>(keys), weight);
+}
+
+template<typename AdjStructureType, typename V, typename W>
+void Graph<AdjStructureType, V, W>::remove_edge(const std::string& orig, const std::string& dest)
+{
+    auto keys = valid_label_check(orig, dest);
+    remove_edge(std::get<0>(keys), std::get<1>(keys));
+}
+
+template<typename AdjStructureType, typename V, typename W>
 void Graph<AdjStructureType, V, W>::remove_vertex(std::size_t key)
 {
     auto signed_key = static_cast<long long>(key);
     adj_structure.erase(adj_structure.begin() + signed_key);
-    labels_to_keys.erase(vertices[key].label());
+    if (is_labeled) {
+        labels_to_keys.erase(vertices[key].label());
+        for (auto& label_pair : labels_to_keys) {
+            if (label_pair.second > key) {
+                --label_pair.second;
+            }
+        }
+    }
     vertices.erase(vertices.begin() + signed_key);
+}
+
+template<typename AdjStructureType, typename V, typename W>
+void Graph<AdjStructureType, V, W>::remove_vertex(const std::string& label)
+{
+    remove_vertex(std::get<0>(valid_label_check(label)));
 }
 
 template<typename AdjStructureType, typename V, typename W>
@@ -189,10 +234,7 @@ template<typename BeforeFunc, typename DuringFunc, typename AfterFunc>
 std::vector<BFSData> Graph<AdjStructureType, V, W>::bfs(std::size_t start, BeforeFunc&& process_before, DuringFunc&& process_during,
                                                         AfterFunc&& process_after) const
 {
-    if (start > highest_key()) {
-        throw std::out_of_range("Invalid vertex.");
-    }
-
+    valid_vertex_check(start);
     auto num_vertices = adj_structure.size();
     std::vector<BFSData> data(num_vertices);
     data[start].distance = 0;
@@ -347,6 +389,31 @@ void Graph<AdjStructureType, V, W>::dfs_visit(std::size_t orig, std::vector<DFSD
     status[orig] = SearchStatus::processed;
     ++time;
     data[orig].f_time = time;
+}
+
+template<typename AdjStructureType, typename V, typename W>
+Vertex<V>& Graph<AdjStructureType, V, W>::operator[](std::size_t key)
+{
+    return const_cast<Vertex<V>&>(static_cast<const Graph<AdjStructureType, V, W>&>(*this)[key]);
+}
+
+template<typename AdjStructureType, typename V, typename W>
+const Vertex<V>& Graph<AdjStructureType, V, W>::operator[](std::size_t key) const
+{
+    valid_vertex_check(key);
+    return vertices[key];
+}
+
+template<typename AdjStructureType, typename V, typename W>
+Vertex<V>& Graph<AdjStructureType, V, W>::operator[](const std::string& label)
+{
+    return const_cast<Vertex<V>&>(static_cast<const Graph<AdjStructureType, V, W>&>(*this)[label]);
+}
+
+template<typename AdjStructureType, typename V, typename W>
+const Vertex<V> &Graph<AdjStructureType, V, W>::operator[](const std::string& label) const
+{
+    return vertices[std::get<0>(valid_label_check(label))];
 }
 
 } // end namespace

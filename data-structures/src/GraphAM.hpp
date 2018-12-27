@@ -39,6 +39,8 @@ private:
 public:
     using Graph<AdjMatrixType, V, W>::add_vertex;
     using Graph<AdjMatrixType, V, W>::add_edge;
+    using Graph<AdjMatrixType, V, W>::remove_edge;
+    using Graph<AdjMatrixType, V, W>::remove_vertex;
     using Graph<AdjMatrixType, V, W>::bfs;
     using Graph<AdjMatrixType, V, W>::dfs;
     using Graph<AdjMatrixType, V, W>::dfs_rec;
@@ -53,12 +55,10 @@ public:
                     const V& data, const std::string& label) override;
 
     void remove_vertex(std::size_t key) override;
-    void remove_vertex(const std::string& label) override;
 
     void add_edge(std::size_t orig, std::size_t dest, const W& weight) override;
 
     void remove_edge(std::size_t orig, std::size_t dest) override;
-    void remove_edge(const std::string& orig, const std::string& dest) override;
 
     std::unordered_map<std::size_t, W> neighbors(std::size_t vertex) const override;
     std::unordered_map<std::string, W> neighbors(const std::string& vertex) const override;
@@ -97,25 +97,13 @@ void GraphAM<V, W>::remove_vertex(std::size_t key)
 }
 
 template<typename V, typename W>
-void GraphAM<V, W>::remove_vertex(const std::string& label)
-{
-    if (!is_labeled) {
-        throw std::logic_error("Cannot use this function with unlabeled graph.");
-    }
-
-    using namespace std::placeholders;
-    auto func = std::bind(static_cast<void(GraphAM<V, W>::*)(std::size_t)>(&GraphAM<V, W>::remove_vertex), this, _1);
-    std::apply(func, valid_label_check(label));
-}
-
-template<typename V, typename W>
 void GraphAM<V, W>::add_edge(std::size_t orig, std::size_t dest, const W& weight)
 {
     valid_vertex_check(orig, dest);
-    auto valid_weight = is_weighted ? weight : 1;
-    adj_structure[orig][dest] = valid_weight;
+    auto actual_weight = is_weighted ? weight : default_weight<W>{}();
+    adj_structure[orig][dest] = actual_weight;
     if (!is_directed) {
-        adj_structure[dest][orig] = valid_weight;
+        adj_structure[dest][orig] = actual_weight;
     }
 }
 
@@ -132,14 +120,6 @@ void GraphAM<V, W>::remove_edge(std::size_t orig, std::size_t dest)
     if (!is_weighted) {
         adj_structure[dest][orig] = {};
     }
-}
-
-template<typename V, typename W>
-void GraphAM<V, W>::remove_edge(const std::string& orig, const std::string& dest)
-{
-    using namespace std::placeholders;
-    auto func = std::bind(static_cast<void(GraphAM<V, W>::*)(std::size_t, std::size_t)>(&GraphAM<V, W>::remove_edge), this, _1, _2);
-    std::apply(func, valid_label_check(orig, dest));
 }
 
 template<typename V, typename W>
