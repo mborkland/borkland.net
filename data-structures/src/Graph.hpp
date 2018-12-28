@@ -43,10 +43,21 @@ struct default_weight<W, std::enable_if_t<std::is_arithmetic_v<W>>>
     W operator()() const noexcept { return static_cast<W>(1); }
 };
 
+constexpr void(*empty_vertex_func)(std::size_t) = [](std::size_t){};
+template<typename W>
+constexpr void(*empty_edge_func)(std::size_t, const std::pair<std::size_t, W>&)
+    = [](std::size_t, const std::pair<std::size_t, W>&){};
+
 template<typename AdjStructureType, typename V = size_t, typename W = int>
 class Graph
 {
 protected:
+    template<typename Enable = void> struct default_weight {};
+    template<> struct default_weight<std::enable_if_t<std::is_arithmetic_v<W>>>
+    {
+        W operator()() const noexcept { return static_cast<W>(1); }
+    };
+
     std::vector<Vertex<V>> vertices;         // the vertices and their associated data
     AdjStructureType adj_structure;          // holds vertex neighbor data
     std::unordered_map<std::string, std::size_t> labels_to_keys;  // maps labeled vertices to their key values
@@ -99,24 +110,37 @@ public:
     virtual std::unordered_map<std::size_t, W> neighbors(std::size_t vertex) const = 0;
     virtual std::unordered_map<std::string, W> neighbors(const std::string& vertex) const = 0;
 
-    template<typename BeforeFunc, typename DuringFunc, typename AfterFunc>
-    std::vector<BFSData> bfs(std::size_t start, BeforeFunc&& process_before = {}, DuringFunc&& process_during = {},
-                             AfterFunc&& process_after = {}) const;
-    template<typename BeforeFunc, typename DuringFunc, typename AfterFunc>
-    std::vector<DFSData> dfs(BeforeFunc&& process_before = {}, DuringFunc&& process_during = {},
-                                 AfterFunc&& process_after = {}) const;
-    template<typename BeforeFunc, typename DuringFunc, typename AfterFunc>
-    std::vector<DFSData> dfs_rec(BeforeFunc&& process_before = {}, DuringFunc&& process_during = {},
-                             AfterFunc&& process_after = {}) const;
-    template<typename BeforeFunc, typename DuringFunc, typename AfterFunc>
+    template<typename FV1 = void(*)(size_t), typename FE = void(*)(size_t, const std::pair<size_t, W>&), typename FV2 = void(*)(size_t),
+             typename = std::enable_if_t<std::is_convertible_v<decltype(std::declval<FV1>()(std::declval<std::size_t>())), void>
+             && std::is_convertible_v<decltype(std::declval<FE>()(std::declval<std::size_t>(), std::declval<const std::pair<std::size_t, W>&>())), void>
+             && std::is_convertible_v<decltype(std::declval<FV2>()(std::declval<std::size_t>())), void>>>
+    std::vector<BFSData> bfs(std::size_t start, const FV1& process_vertex_early = empty_vertex_func, const FE& process_edge = empty_edge_func<W>,
+                             const FV2& process_vertex_late = empty_vertex_func) const;
+    template<typename FV1 = void(*)(size_t), typename FE = void(*)(size_t, const std::pair<size_t, W>&), typename FV2 = void(*)(size_t),
+            typename = std::enable_if_t<std::is_convertible_v<decltype(std::declval<FV1>()(std::declval<std::size_t>())), void>
+            && std::is_convertible_v<decltype(std::declval<FE>()(std::declval<std::size_t>(), std::declval<const std::pair<std::size_t, W>&>())), void>
+            && std::is_convertible_v<decltype(std::declval<FV2>()(std::declval<std::size_t>())), void>>>
+    std::vector<DFSData> dfs(const FV1& process_vertex_early = empty_vertex_func, const FE& process_edge = empty_edge_func<W>,
+                             const FV2& process_vertex_late = empty_vertex_func) const;
+    template<typename FV1 = void(*)(size_t), typename FE = void(*)(size_t, const std::pair<size_t, W>&), typename FV2 = void(*)(size_t),
+            typename = std::enable_if_t<std::is_convertible_v<decltype(std::declval<FV1>()(std::declval<std::size_t>())), void>
+            && std::is_convertible_v<decltype(std::declval<FE>()(std::declval<std::size_t>(), std::declval<const std::pair<std::size_t, W>&>())), void>
+            && std::is_convertible_v<decltype(std::declval<FV2>()(std::declval<std::size_t>())), void>>>
+    std::vector<DFSData> dfs_rec(const FV1& process_vertex_early = empty_vertex_func, const FE& process_edge = empty_edge_func<W>,
+                                 const FV2& process_vertex_late = empty_vertex_func) const;
+    template<typename FV1 = void(*)(size_t), typename FE = void(*)(size_t, const std::pair<size_t, W>&), typename FV2 = void(*)(size_t),
+            typename = std::enable_if_t<std::is_convertible_v<decltype(std::declval<FV1>()(std::declval<std::size_t>())), void>
+            && std::is_convertible_v<decltype(std::declval<FE>()(std::declval<std::size_t>(), std::declval<const std::pair<std::size_t, W>&>())), void>
+            && std::is_convertible_v<decltype(std::declval<FV2>()(std::declval<std::size_t>())), void>>>
     void dfs_visit(std::size_t orig, std::vector<DFSData>& data, std::vector<SearchStatus>& status,
-                   std::size_t& time, BeforeFunc&& process_before, DuringFunc&& process_during,
-                   AfterFunc&& process_after) const;
+                   std::size_t& time, const FV1& process_vertex_early = empty_vertex_func, const FE& process_edge = empty_edge_func<W>,
+                   const FV2& process_vertex_late = empty_vertex_func) const;
 
-    Vertex<V>& operator[](std::size_t key);
     const Vertex<V>& operator[](std::size_t key) const;
-    Vertex<V>& operator[](const std::string& label);
+    Vertex<V>& operator[](std::size_t key);
     const Vertex<V>& operator[](const std::string& label) const;
+    Vertex<V>& operator[](const std::string& label);
+    void change_label(const std::string& label, const std::string& new_label);
     bool weighted() { return is_weighted; }
     bool directed() { return is_directed; }
     bool labeled() { return is_labeled; }
@@ -183,11 +207,11 @@ void Graph<AdjStructureType, V, W>::add_vertex(const std::vector<std::pair<std::
         throw std::invalid_argument("Invalid edge in initializer list.");
     }
 
-    Vertex<V> vertex{data_is_key, is_labeled, current_key, data_is_key ? current_key : data, is_labeled ? label : ""};
+    Vertex<V> vertex{data_is_key, is_labeled, data, label};
     vertices.push_back(vertex);
 
     if (is_labeled) {
-        if (!labels_to_keys.insert({label, current_key}).second) {
+        if (!labels_to_keys.insert({vertex.label(), current_key}).second) {
             throw std::invalid_argument("Vertex with label already exists in graph.");
         }
     }
@@ -230,9 +254,9 @@ void Graph<AdjStructureType, V, W>::remove_vertex(const std::string& label)
 }
 
 template<typename AdjStructureType, typename V, typename W>
-template<typename BeforeFunc, typename DuringFunc, typename AfterFunc>
-std::vector<BFSData> Graph<AdjStructureType, V, W>::bfs(std::size_t start, BeforeFunc&& process_before, DuringFunc&& process_during,
-                                                        AfterFunc&& process_after) const
+template<typename FV1, typename FE, typename FV2, typename>
+std::vector<BFSData> Graph<AdjStructureType, V, W>::bfs(std::size_t start, const FV1& process_vertex_early, const FE& process_edge,
+                                                        const FV2& process_vertex_late) const
 {
     valid_vertex_check(start);
     auto num_vertices = adj_structure.size();
@@ -246,15 +270,13 @@ std::vector<BFSData> Graph<AdjStructureType, V, W>::bfs(std::size_t start, Befor
     while (!bfs_queue.empty()) {
         auto orig = bfs_queue.front();
         bfs_queue.pop();
-        if (process_before) {
-            process_before(orig);
-        }
+        process_vertex_early(orig);
         status[orig] = SearchStatus::processed;
 
         for (const auto& neighbor : neighbors(orig)) {
             auto dest = neighbor.first;
-            if (process_during && (status[dest] != SearchStatus::processed || is_directed)) {
-                process_during(orig, neighbor);
+            if (is_directed || (status[dest] != SearchStatus::processed)) {
+                process_edge(orig, neighbor);
             }
 
             if (status[dest] == SearchStatus::undiscovered) {
@@ -265,18 +287,16 @@ std::vector<BFSData> Graph<AdjStructureType, V, W>::bfs(std::size_t start, Befor
             }
         }
 
-        if (process_after) {
-            process_after(orig);
-        }
+        process_vertex_late(orig);
     }
 
     return data;
 }
 
 template<typename AdjStructureType, typename V, typename W>
-template<typename BeforeFunc, typename DuringFunc, typename AfterFunc>
-std::vector<DFSData> Graph<AdjStructureType, V, W>::dfs(BeforeFunc&& process_before, DuringFunc&& process_during,
-                                                            AfterFunc&& process_after) const
+template<typename FV1, typename FE, typename FV2, typename>
+std::vector<DFSData> Graph<AdjStructureType, V, W>::dfs(const FV1& process_vertex_early, const FE& process_edge,
+                                                        const FV2& process_vertex_late) const
 {
     auto num_vertices = adj_structure.size();
     std::vector<DFSData> data(num_vertices);
@@ -293,12 +313,10 @@ std::vector<DFSData> Graph<AdjStructureType, V, W>::dfs(BeforeFunc&& process_bef
         while (!dfs_stack.empty()) {
             ++time;
             auto orig = dfs_stack.top();
-            if (status[index] == SearchStatus::undiscovered) {
+            if (status[orig] == SearchStatus::undiscovered) {
                 data[orig].d_time = time;
                 status[orig] = SearchStatus::discovered;
-                if (process_before) {
-                    process_before(orig);
-                }
+                process_vertex_early(orig);
             }
 
             bool processed = true;
@@ -307,13 +325,10 @@ std::vector<DFSData> Graph<AdjStructureType, V, W>::dfs(BeforeFunc&& process_bef
                 if (status[dest] == SearchStatus::undiscovered) {
                     processed = false;
                     data[dest].parent = orig;
-                    if (process_during) {
-                        process_during(orig, neighbor);
-                    }
-
+                    process_edge(orig, neighbor);
                     dfs_stack.push(dest);
-                } else if (process_during && (status[dest] != SearchStatus::processed || is_directed)) {
-                    process_during(orig, neighbor);
+                } else if (is_directed || (status[dest] != SearchStatus::processed)) {
+                    process_edge(orig, neighbor);
                 }
             }
 
@@ -324,9 +339,7 @@ std::vector<DFSData> Graph<AdjStructureType, V, W>::dfs(BeforeFunc&& process_bef
                     data[orig].f_time = time;
                 }
 
-                if (process_after) {
-                    process_after(orig);
-                }
+                process_vertex_late(orig);
             }
         }
     }
@@ -335,9 +348,9 @@ std::vector<DFSData> Graph<AdjStructureType, V, W>::dfs(BeforeFunc&& process_bef
 }
 
 template<typename AdjStructureType, typename V, typename W>
-template<typename BeforeFunc, typename DuringFunc, typename AfterFunc>
-std::vector<DFSData> Graph<AdjStructureType, V, W>::dfs_rec(BeforeFunc&& process_before, DuringFunc&& process_during,
-                                                        AfterFunc&& process_after) const
+template<typename FV1, typename FE, typename FV2, typename>
+std::vector<DFSData> Graph<AdjStructureType, V, W>::dfs_rec(const FV1& process_vertex_early, const FE& process_edge,
+                                                            const FV2& process_vertex_late) const
 {
     auto num_vertices = adj_structure.size();
     std::vector<DFSData> data(num_vertices);
@@ -346,8 +359,7 @@ std::vector<DFSData> Graph<AdjStructureType, V, W>::dfs_rec(BeforeFunc&& process
 
     for (std::size_t index = 0; index < num_vertices; ++index) {
         if (status[index] == SearchStatus::undiscovered) {
-            dfs_visit(index, data, status, time, std::forward<BeforeFunc>(process_before),
-                    std::forward<DuringFunc>(process_during), std::forward<AfterFunc>(process_after));
+            dfs_visit(index, data, status, time, process_vertex_early, process_edge, process_vertex_late);
         }
     }
 
@@ -355,46 +367,31 @@ std::vector<DFSData> Graph<AdjStructureType, V, W>::dfs_rec(BeforeFunc&& process
 }
 
 template<typename AdjStructureType, typename V, typename W>
-template<typename BeforeFunc, typename DuringFunc, typename AfterFunc>
+template<typename FV1, typename FE, typename FV2, typename>
 void Graph<AdjStructureType, V, W>::dfs_visit(std::size_t orig, std::vector<DFSData>& data, std::vector<SearchStatus>& status,
-                              std::size_t& time, BeforeFunc&& process_before, DuringFunc&& process_during,
-                              AfterFunc&& process_after) const
+                              std::size_t& time, const FV1& process_vertex_early, const FE& process_edge,
+                              const FV2& process_vertex_late) const
 {
     ++time;
     data[orig].d_time = time;
     status[orig] = SearchStatus::discovered;
-    if (process_before) {
-        process_before(orig);
-    }
+    process_vertex_early(orig);
 
     for (const auto& neighbor : neighbors(orig)) {
         auto dest = neighbor.first;
         if (status[dest] == SearchStatus::undiscovered) {
             data[dest].parent = orig;
-            if (process_during) {
-                process_during(orig, neighbor);
-            }
-
-            dfs_visit(dest, data, status, time, std::forward<BeforeFunc>(process_before),
-                      std::forward<DuringFunc>(process_during), std::forward<AfterFunc>(process_after));
-        } else if (process_during && (status[dest] != SearchStatus::processed || is_directed)) {
-            process_during(orig, neighbor);
+            process_edge(orig, neighbor);
+            dfs_visit(dest, data, status, time, process_vertex_early, process_edge, process_vertex_late);
+        } else if (is_directed || (status[dest] != SearchStatus::processed)) {
+            process_edge(orig, neighbor);
         }
     }
 
-    if (process_after) {
-        process_after(orig);
-    }
-
+    process_vertex_late(orig);
     status[orig] = SearchStatus::processed;
     ++time;
     data[orig].f_time = time;
-}
-
-template<typename AdjStructureType, typename V, typename W>
-Vertex<V>& Graph<AdjStructureType, V, W>::operator[](std::size_t key)
-{
-    return const_cast<Vertex<V>&>(static_cast<const Graph<AdjStructureType, V, W>&>(*this)[key]);
 }
 
 template<typename AdjStructureType, typename V, typename W>
@@ -405,15 +402,31 @@ const Vertex<V>& Graph<AdjStructureType, V, W>::operator[](std::size_t key) cons
 }
 
 template<typename AdjStructureType, typename V, typename W>
+Vertex<V>& Graph<AdjStructureType, V, W>::operator[](std::size_t key)
+{
+    return const_cast<Vertex<V>&>(static_cast<const Graph<AdjStructureType, V, W>&>(*this)[key]);
+}
+
+template<typename AdjStructureType, typename V, typename W>
+const Vertex<V>& Graph<AdjStructureType, V, W>::operator[](const std::string& label) const
+{
+    return vertices[std::get<0>(valid_label_check(label))];
+}
+
+template<typename AdjStructureType, typename V, typename W>
 Vertex<V>& Graph<AdjStructureType, V, W>::operator[](const std::string& label)
 {
     return const_cast<Vertex<V>&>(static_cast<const Graph<AdjStructureType, V, W>&>(*this)[label]);
 }
 
 template<typename AdjStructureType, typename V, typename W>
-const Vertex<V> &Graph<AdjStructureType, V, W>::operator[](const std::string& label) const
+void Graph<AdjStructureType, V, W>::change_label(const std::string& label, const std::string& new_label)
 {
-    return vertices[std::get<0>(valid_label_check(label))];
+    auto key = std::get<0>(valid_label_check(label));
+    auto nh = labels_to_keys.extract(label);
+    nh.key() = new_label;
+    labels_to_keys.insert(std::move(nh));
+    vertices[key].vertex_label = new_label;
 }
 
 } // end namespace

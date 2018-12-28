@@ -56,4 +56,6 @@ set(GRAPHAM_SOURCE_FILES ${DS_TEST_DIR}/tests-GraphAM.cpp ${CATCH_OBJECT_FILE})
 add_executable(tests-GraphAM ${GRAPHAM_SOURCE_FILES})
 target_link_libraries(tests-GraphAM Catch)
 
+add_executable(test data-structures/src/test.cpp)
+
 add_executable(heapsort-benchmark ${ALG_TEST_DIR}/heapsort-benchmark.cpp)

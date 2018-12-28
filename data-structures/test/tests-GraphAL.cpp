@@ -1,4 +1,5 @@
 #include <random>
+#include <set>
 #include <unordered_set>
 #include "../../catch/catch.hpp"
 #include "../src/GraphBuilder.hpp"
@@ -239,7 +240,7 @@ TEST_CASE("Vertices and edges can be added to GraphALs in various ways", "[Graph
     }
 }
 
-GraphAL<> create_small_graph(bool directed = false, bool weighted = false)
+GraphAL<> create_small_graph(bool directed = false, bool weighted = false, bool has_satellite_data = false)
 {
     constexpr std::size_t num_vertices = 10;
     GraphBuilder<> builder;
@@ -248,6 +249,9 @@ GraphAL<> create_small_graph(bool directed = false, bool weighted = false)
     }
     if (weighted) {
         builder.weighted();
+    }
+    if (has_satellite_data) {
+        builder.use_satellite_data();
     }
     auto graph = builder.build_adj_list();
     for (int i = 0; i < num_vertices; ++i) {
@@ -270,7 +274,7 @@ GraphAL<> create_small_graph(bool directed = false, bool weighted = false)
     return graph;
 }
 
-GraphAL<> create_small_labeled_graph(bool directed = false, bool weighted = false)
+GraphAL<> create_small_labeled_graph(bool directed = false, bool weighted = false, bool has_satellite_data = false)
 {
     GraphBuilder<> builder;
     if (directed) {
@@ -278,6 +282,9 @@ GraphAL<> create_small_labeled_graph(bool directed = false, bool weighted = fals
     }
     if (weighted) {
         builder.weighted();
+    }
+    if (has_satellite_data) {
+        builder.use_satellite_data();
     }
     auto graph = builder.labeled().build_adj_list();
 
@@ -429,15 +436,181 @@ TEST_CASE("Vertices can be removed from GraphALs", "[GraphAL]")
 
 TEST_CASE("Edges can be removed from GraphALs", "[GraphAL]")
 {
+    SECTION("Edges can be removed from undirected GraphALs")
+    {
+        auto graph = create_small_graph();
+        graph.remove_edge(1, 5);
+        graph.remove_edge(2, 5);
+        graph.remove_edge(4, 5);
+        REQUIRE(graph.neighbors(1).empty());
+        REQUIRE(graph.neighbors(2).empty());
+        REQUIRE(graph.neighbors(4).size() == 1);
+        REQUIRE(graph.neighbors(5).size() == 2);
+        REQUIRE(graph.neighbors(5).find(1) == graph.neighbors(5).end());
+        REQUIRE(graph.neighbors(5).find(2) == graph.neighbors(5).end());
+        REQUIRE(graph.neighbors(5).find(4) == graph.neighbors(5).end());
+        REQUIRE_FALSE(graph.neighbors(5).find(7) == graph.neighbors(5).end());
+        REQUIRE_FALSE(graph.neighbors(5).find(8) == graph.neighbors(5).end());
+    }
 
+    SECTION("Edges can be removed from directed GraphALs")
+    {
+        auto graph = create_small_graph(true);
+        graph.remove_edge(1, 5);
+        graph.remove_edge(2, 5);
+        graph.remove_edge(4, 5);
+        REQUIRE(graph.neighbors(1).empty());
+        REQUIRE(graph.neighbors(2).empty());
+        REQUIRE(graph.neighbors(4).size() == 1);
+        REQUIRE(graph.neighbors(5).size() == 2);
+        REQUIRE(graph.neighbors(5).find(1) == graph.neighbors(5).end());
+        REQUIRE(graph.neighbors(5).find(2) == graph.neighbors(5).end());
+        REQUIRE(graph.neighbors(5).find(4) == graph.neighbors(5).end());
+        REQUIRE_FALSE(graph.neighbors(5).find(7) == graph.neighbors(5).end());
+        REQUIRE_FALSE(graph.neighbors(5).find(8) == graph.neighbors(5).end());
+    }
+}
+
+TEST_CASE("GraphALs can be subscripted", "[GraphAL]")
+{
+    SECTION("GraphALs can be subscripted by key")
+    {
+        SECTION("Non-const GraphALs can be subscripted by key")
+        {
+            auto graph = create_small_graph(false, false, true);
+            REQUIRE(graph[5].data() == 0);
+            graph[5].data() = 42;
+            REQUIRE(graph[5].data() == 42);
+        }
+
+        SECTION("Const GraphALs can be subscripted by key")
+        {
+            auto graph = create_small_graph(false, false, true);
+            const auto& graph_ref = graph;
+            REQUIRE(graph_ref[5].data() == 0);
+            //graph_ref[5].data() = 42;    // uncommenting should keep test file from compiling
+        }
+    }
+
+    SECTION("GraphALs can be subscripted by label")
+    {
+        SECTION("Non-const GraphALs can be subscripted by label")
+        {
+            auto graph = create_small_labeled_graph(false, false, true);
+            REQUIRE(graph["St. Petersburg"].label() == "St. Petersburg");
+            graph.change_label("St. Petersburg", "St. Pete");
+            REQUIRE_THROWS_WITH(graph["St. Petersburg"], "Vertice with given label does not exist in graph.");
+            REQUIRE(graph["St. Pete"].label() == "St. Pete");
+            REQUIRE(graph["St. Pete"].data() == 0);
+            graph["St. Pete"].data() = 42;
+            REQUIRE(graph["St. Pete"].data() == 42);
+        }
+
+        SECTION("Const GraphALs can be subscripted by label")
+        {
+            auto graph = create_small_labeled_graph();
+            const auto& graph_ref = graph;
+            REQUIRE(graph_ref["St. Petersburg"].label() == "St. Petersburg");
+            //graph_ref["St. Petersburg"].label() = "St. Pete";    // uncommenting should keep test file from compiling
+        }
+    }
 }
 
 TEST_CASE("GraphALs can be searched using breadth-first search", "[GraphAL]")
 {
+    SECTION("BFS accesses all vertices for an undirected, connected graph")
+    {
+        auto graph = create_small_graph();
+        std::set<std::size_t> vertices_accessed;
+        graph.bfs(1, [&](auto vertex){ vertices_accessed.insert(vertex); });
+        std::size_t i = 0;
+        for (std::size_t vertex_accessed : vertices_accessed) {
+            REQUIRE(vertex_accessed == i);
+            ++i;
+        }
+    }
 
+    SECTION("BFS does not access all vertices in a directed, connected graph when some vertices are not reachable from the start vertex")
+    {
+        auto graph = create_small_graph(true);
+        std::set<std::size_t> vertices_accessed;
+        graph.bfs(1, [&](auto vertex){ vertices_accessed.insert(vertex); });
+        REQUIRE(vertices_accessed.find(2) == vertices_accessed.end());
+        REQUIRE(vertices_accessed.find(4) == vertices_accessed.end());
+        REQUIRE(vertices_accessed.find(0) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(1) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(5) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(7) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(8) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(9) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(6) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(3) == vertices_accessed.end());
+    }
+
+    SECTION("BFS returns correct data for an undirected GraphAL")
+    {
+        auto graph = create_small_graph();
+        auto bfs_data = graph.bfs(1);
+        REQUIRE(bfs_data[1].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(bfs_data[1].distance == 0);
+        REQUIRE(bfs_data[5].parent == 1);
+        REQUIRE(bfs_data[5].distance == 1);
+        REQUIRE(bfs_data[4].parent == 5);
+        REQUIRE(bfs_data[4].distance == 2);
+        REQUIRE(bfs_data[2].parent == 5);
+        REQUIRE(bfs_data[2].distance == 2);
+        REQUIRE(bfs_data[7].parent == 5);
+        REQUIRE(bfs_data[7].distance == 2);
+        REQUIRE(bfs_data[8].parent == 5);
+        REQUIRE(bfs_data[8].distance == 2);
+        REQUIRE(bfs_data[0].parent == 4);
+        REQUIRE(bfs_data[0].distance == 3);
+        REQUIRE(bfs_data[9].parent == 8);
+        REQUIRE(bfs_data[9].distance == 3);
+        REQUIRE(bfs_data[3].parent == 7);
+        REQUIRE(bfs_data[3].distance == 3);
+        REQUIRE((bfs_data[6].parent == 9 || bfs_data[6].parent == 3));
+        REQUIRE(bfs_data[6].distance == 4);
+    }
+
+    SECTION("BFS returns correct data for a directed GraphAL")
+    {
+        auto graph = create_small_graph(true);
+        auto bfs_data = graph.bfs(1);
+        REQUIRE(bfs_data[1].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(bfs_data[1].distance == 0);
+        REQUIRE(bfs_data[5].parent == 1);
+        REQUIRE(bfs_data[5].distance == 1);
+        REQUIRE(bfs_data[4].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(bfs_data[4].distance == std::numeric_limits<std::size_t>::max());
+        REQUIRE(bfs_data[2].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(bfs_data[2].distance == std::numeric_limits<std::size_t>::max());
+        REQUIRE(bfs_data[7].parent == 5);
+        REQUIRE(bfs_data[7].distance == 2);
+        REQUIRE(bfs_data[8].parent == 5);
+        REQUIRE(bfs_data[8].distance == 2);
+        REQUIRE(bfs_data[0].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(bfs_data[0].distance == std::numeric_limits<std::size_t>::max());
+        REQUIRE(bfs_data[9].parent == 8);
+        REQUIRE(bfs_data[9].distance == 3);
+        REQUIRE(bfs_data[3].parent == 7);
+        REQUIRE(bfs_data[3].distance == 3);
+        REQUIRE((bfs_data[6].parent == 9 || bfs_data[6].parent == 3));
+        REQUIRE(bfs_data[6].distance == 4);
+    }
 }
 
 TEST_CASE("GraphALs can be searched using depth-first search", "[GraphAL]")
 {
-
+    SECTION("DFS accesses all vertices for an undirected, connected graph")
+    {
+        auto graph = create_small_graph();
+        std::set<std::size_t> vertices_accessed;
+        graph.dfs([&](auto vertex){ vertices_accessed.insert(vertex); });
+        std::size_t i = 0;
+        for (std::size_t vertex_accessed : vertices_accessed) {
+            REQUIRE(vertex_accessed == i);
+            ++i;
+        }
+    }
 }

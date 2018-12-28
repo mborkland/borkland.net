@@ -7,9 +7,7 @@
 namespace bork_lib
 {
 
-template<typename A, typename V, typename W> class Graph;
-template<typename V, typename W> class GraphAL;
-template<typename V, typename W> class GraphAM;
+template<typename A, typename B, typename C> class Graph;
 
 template<typename V = size_t>
 class Vertex
@@ -17,13 +15,13 @@ class Vertex
 private:
     bool data_is_key;
     bool labeled;
-    std::size_t key;
     V vertex_data;
     std::string vertex_label;
 
 public:
-    Vertex(bool data_is_key, bool labeled, std::size_t key, V data = {}, std::string label = {})
-      : data_is_key{data_is_key}, labeled{labeled}, key{key}, vertex_data{std::move(data)}, vertex_label{std::move(label)} {}
+    Vertex(bool data_is_key, bool labeled, V data = {}, std::string label = {})
+      : data_is_key{data_is_key}, labeled{labeled}, vertex_data{std::move(data)},
+      vertex_label{labeled ? std::move(label) : ""} {}
 
     const V& data() const
     {
@@ -40,11 +38,10 @@ public:
         if (!labeled) {
             throw std::logic_error("Label does not exist for unlabeled vertex.");
         }
-
         return vertex_label;
     }
 
-    std::string& label() { return const_cast<std::string&>(static_cast<const Vertex&>(*this).label()); }
+    template<typename A, typename B, typename C> friend class Graph;
 };
 
 } // end namespace
