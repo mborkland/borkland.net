@@ -1,6 +1,7 @@
 #ifndef GRAPH_BUILDER_HPP
 #define GRAPH_BUILDER_HPP
 
+#include <type_traits>
 #include "GraphAL.hpp"
 #include "GraphAM.hpp"
 
@@ -13,8 +14,7 @@ class GraphBuilder
 private:
     bool is_weighted = false;
     bool is_directed = false;
-    bool is_labeled = false;
-    bool data_is_key = true;
+    bool satellite_data = false;
     void validation_check();
 
 public:
@@ -26,21 +26,21 @@ public:
 
     GraphBuilder<V, W>& weighted();
     GraphBuilder<V, W>& directed();
-    GraphBuilder<V, W>& labeled();
     GraphBuilder<V, W>& use_satellite_data();
 
-    GraphAL<V, W> build_adj_list();
+    GraphAL<std::string, V, W> build_adj_list_labeled();
+    GraphAL<std::size_t, V, W> build_adj_list();
     GraphAM<V, W> build_adj_matrix();
 };
 
 template<typename V, typename W>
 void GraphBuilder<V, W>::validation_check()
 {
-    if (data_is_key && !std::is_same<V, size_t>::value) {
-        throw std::invalid_argument("Data can't equal key if type is not std::size_t.");
+    if (!satellite_data && !std::is_same<V, std::size_t>::value) {
+        throw std::invalid_argument("Graph with no satellite data must have vertex of type std::size_t.");
     }
 
-    if (!std::is_same<W, int>::value) {
+    if (!is_weighted && !std::is_same<W, int>::value) {
         throw std::invalid_argument("Unweighted graph must have weight of type int.");
     }
 }
@@ -60,31 +60,31 @@ GraphBuilder<V, W>& GraphBuilder<V, W>::directed()
 }
 
 template<typename V, typename W>
-GraphBuilder<V, W>& GraphBuilder<V, W>::labeled()
-{
-    is_labeled = true;
-    return *this;
-}
-
-template<typename V, typename W>
 GraphBuilder<V, W>& GraphBuilder<V, W>::use_satellite_data()
 {
-    data_is_key = false;
+    satellite_data = true;
     return *this;
 }
 
 template<typename V, typename W>
-GraphAL<V, W> GraphBuilder<V, W>::build_adj_list()
+GraphAL<std::string, V, W> GraphBuilder<V, W>::build_adj_list_labeled()
 {
     validation_check();
-    return GraphAL<V, W>{is_weighted, is_directed, is_labeled, data_is_key};
+    return GraphAL<std::string, V, W>{is_weighted, is_directed, true, satellite_data};
+}
+
+template<typename V, typename W>
+GraphAL<std::size_t, V, W> GraphBuilder<V, W>::build_adj_list()
+{
+    validation_check();
+    return GraphAL<std::size_t, V, W>{is_weighted, is_directed, false, satellite_data};
 }
 
 template<typename V, typename W>
 GraphAM<V, W> GraphBuilder<V, W>::build_adj_matrix()
 {
     validation_check();
-    return GraphAM<V, W>{is_weighted, is_directed, is_labeled, data_is_key};
+    return GraphAM<V, W>{is_weighted, is_directed, false, satellite_data};
 }
 
 } // end namespace

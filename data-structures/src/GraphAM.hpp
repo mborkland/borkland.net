@@ -30,7 +30,7 @@ private:
     using Graph<AdjMatrixType, V, W>::is_weighted;
     using Graph<AdjMatrixType, V, W>::is_directed;
     using Graph<AdjMatrixType, V, W>::is_labeled;
-    using Graph<AdjMatrixType, V, W>::data_is_key;
+    using Graph<AdjMatrixType, V, W>::satellite_data;
     using Graph<AdjMatrixType, V, W>::labels_to_keys;
 
     GraphAM(bool is_weighted, bool is_directed, bool is_labeled, bool data_is_key)
@@ -62,8 +62,6 @@ public:
 
     std::unordered_map<std::size_t, W> neighbors(std::size_t vertex) const override;
     std::unordered_map<std::string, W> neighbors(const std::string& vertex) const override;
-
-    void print_adj_structure() const override;
 
     friend GraphBuilder<V, W>;
 };
@@ -100,7 +98,7 @@ template<typename V, typename W>
 void GraphAM<V, W>::add_edge(std::size_t orig, std::size_t dest, const W& weight)
 {
     valid_vertex_check(orig, dest);
-    auto actual_weight = is_weighted ? weight : default_weight<W>{}();
+    auto actual_weight = is_weighted ? weight : default_edge_weight<W>{}();
     adj_structure[orig][dest] = actual_weight;
     if (!is_directed) {
         adj_structure[dest][orig] = actual_weight;
@@ -142,29 +140,6 @@ std::unordered_map<std::string, W> GraphAM<V, W>::neighbors(const std::string& v
 {
     return create_label_map(neighbors(std::get<0>(valid_label_check(vertex))));
 }
-
-template<typename V, typename W>
-void GraphAM<V, W>::print_adj_structure() const
-{
-    for (std::size_t i = 0; i < adj_structure.size(); ++i) {
-        is_labeled ? std::cout << vertices[i].label() : std::cout << i;
-        std::cout << ": ";
-        auto neighbors = adj_structure[i];
-        for (std::size_t j = 0; j < neighbors.size(); ++j) {
-            if (neighbors[j] != W{}) {
-                std::cout << j;
-                if (is_weighted) {
-                    std::cout << '/' << neighbors[j];
-                }
-            }
-            std::cout << " ";
-        }
-
-        std::cout << '\n';
-    }
-}
-
-// TODO: add Kruskal's, Prim's, Dijkstra's, etc.
 
 } // end namespace
 

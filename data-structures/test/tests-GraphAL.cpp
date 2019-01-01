@@ -49,7 +49,7 @@ TEST_CASE("GraphAL can be constructed using GraphBuilder", "[GraphAL]")
 
     SECTION("Labeled graph can be constructed")
     {
-        auto graph = GraphBuilder<>{}.labeled().build_adj_list();
+        auto graph = GraphBuilder<>{}.build_adj_list_labeled();
         REQUIRE(!graph.directed());
         REQUIRE(!graph.has_satellite_data());
         REQUIRE(graph.labeled());
@@ -274,7 +274,7 @@ GraphAL<> create_small_graph(bool directed = false, bool weighted = false, bool 
     return graph;
 }
 
-GraphAL<> create_small_labeled_graph(bool directed = false, bool weighted = false, bool has_satellite_data = false)
+GraphAL<std::string> create_small_labeled_graph(bool directed = false, bool weighted = false, bool has_satellite_data = false)
 {
     GraphBuilder<> builder;
     if (directed) {
@@ -286,7 +286,7 @@ GraphAL<> create_small_labeled_graph(bool directed = false, bool weighted = fals
     if (has_satellite_data) {
         builder.use_satellite_data();
     }
-    auto graph = builder.labeled().build_adj_list();
+    auto graph = builder.build_adj_list_labeled();
 
     graph.add_vertex("Tampa");
     graph.add_vertex("St. Petersburg");
@@ -336,7 +336,7 @@ TEST_CASE("Vertices can be removed from GraphALs", "[GraphAL]")
         {
             auto graph = create_small_labeled_graph();
             graph.remove_vertex("Tampa");
-            REQUIRE_THROWS_WITH(graph.neighbors("Tampa"), "Vertice with given label does not exist in graph.");
+            REQUIRE_THROWS_WITH(graph.neighbors("Tampa"), "Vertex with given label does not exist in graph.");
             REQUIRE(graph.neighbors("St. Petersburg").size() == 1);
             REQUIRE(graph.neighbors("St. Petersburg").find("Tampa") == graph.neighbors("St. Petersburg").end());
             REQUIRE_FALSE(graph.neighbors("St. Petersburg").find("Fort Myers") == graph.neighbors("St. Petersburg").end());
@@ -365,7 +365,7 @@ TEST_CASE("Vertices can be removed from GraphALs", "[GraphAL]")
         {
             auto graph = create_small_labeled_graph(true);
             graph.remove_vertex("Tampa");
-            REQUIRE_THROWS_WITH(graph.neighbors("Tampa"), "Vertice with given label does not exist in graph.");
+            REQUIRE_THROWS_WITH(graph.neighbors("Tampa"), "Vertex with given label does not exist in graph.");
             REQUIRE(graph.neighbors("St. Petersburg").size() == 1);
             REQUIRE(graph.neighbors("St. Petersburg").find("Tampa") == graph.neighbors("St. Petersburg").end());
             REQUIRE_FALSE(graph.neighbors("St. Petersburg").find("Fort Myers") == graph.neighbors("St. Petersburg").end());
@@ -394,7 +394,7 @@ TEST_CASE("Vertices can be removed from GraphALs", "[GraphAL]")
         {
             auto graph = create_small_labeled_graph(false, true);
             graph.remove_vertex("Tampa");
-            REQUIRE_THROWS_WITH(graph.neighbors("Tampa"), "Vertice with given label does not exist in graph.");
+            REQUIRE_THROWS_WITH(graph.neighbors("Tampa"), "Vertex with given label does not exist in graph.");
             REQUIRE(graph.neighbors("St. Petersburg").size() == 1);
             REQUIRE(graph.neighbors("St. Petersburg").find("Tampa") == graph.neighbors("St. Petersburg").end());
             REQUIRE_FALSE(graph.neighbors("St. Petersburg").find("Fort Myers") == graph.neighbors("St. Petersburg").end());
@@ -423,7 +423,7 @@ TEST_CASE("Vertices can be removed from GraphALs", "[GraphAL]")
         {
             auto graph = create_small_labeled_graph(true, true);
             graph.remove_vertex("Tampa");
-            REQUIRE_THROWS_WITH(graph.neighbors("Tampa"), "Vertice with given label does not exist in graph.");
+            REQUIRE_THROWS_WITH(graph.neighbors("Tampa"), "Vertex with given label does not exist in graph.");
             REQUIRE(graph.neighbors("St. Petersburg").size() == 1);
             REQUIRE(graph.neighbors("St. Petersburg").find("Tampa") == graph.neighbors("St. Petersburg").end());
             REQUIRE_FALSE(graph.neighbors("St. Petersburg").find("Fort Myers") == graph.neighbors("St. Petersburg").end());
@@ -499,7 +499,7 @@ TEST_CASE("GraphALs can be subscripted", "[GraphAL]")
             auto graph = create_small_labeled_graph(false, false, true);
             REQUIRE(graph["St. Petersburg"].label() == "St. Petersburg");
             graph.change_label("St. Petersburg", "St. Pete");
-            REQUIRE_THROWS_WITH(graph["St. Petersburg"], "Vertice with given label does not exist in graph.");
+            REQUIRE_THROWS_WITH(graph["St. Petersburg"], "Vertex with given label does not exist in graph.");
             REQUIRE(graph["St. Pete"].label() == "St. Pete");
             REQUIRE(graph["St. Pete"].data() == 0);
             graph["St. Pete"].data() = 42;
@@ -612,5 +612,221 @@ TEST_CASE("GraphALs can be searched using depth-first search", "[GraphAL]")
             REQUIRE(vertex_accessed == i);
             ++i;
         }
+    }
+
+    SECTION("DFS accesses all vertices in a directed, connected graph")
+    {
+        auto graph = create_small_graph(true);
+        std::set<std::size_t> vertices_accessed;
+        graph.dfs([&](auto vertex){ vertices_accessed.insert(vertex); });
+        std::size_t i = 0;
+        for (std::size_t vertex_accessed : vertices_accessed) {
+            REQUIRE(vertex_accessed == i);
+            ++i;
+        }
+    }
+
+    SECTION("DFS returns correct parent data for an undirected graph")
+    {
+        auto graph = create_small_graph();
+        auto dfs_data = graph.dfs();
+        REQUIRE(dfs_data[0].parent == 4);
+        REQUIRE(dfs_data[4].parent == 5);
+        REQUIRE(dfs_data[5].parent == 7);
+        REQUIRE(dfs_data[1].parent == 5);
+        REQUIRE(dfs_data[2].parent == 5);
+        REQUIRE(dfs_data[8].parent == 5);
+        REQUIRE(dfs_data[9].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(dfs_data[6].parent == 9);
+        REQUIRE(dfs_data[3].parent == 6);
+        REQUIRE(dfs_data[7].parent == 3);
+    }
+
+    SECTION("DFS returns correct parent data for a directed graph")
+    {
+        auto graph = create_small_graph(true);
+        auto dfs_data = graph.dfs();
+        REQUIRE(dfs_data[0].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(dfs_data[1].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(dfs_data[5].parent == 1);
+        REQUIRE(dfs_data[8].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(dfs_data[9].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(dfs_data[6].parent == 9);
+        REQUIRE(dfs_data[7].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(dfs_data[3].parent == 7);
+        REQUIRE(dfs_data[2].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(dfs_data[4].parent == std::numeric_limits<std::size_t>::max());
+    }
+}
+
+bool graphs_are_equal(const GraphAL<>& graph1, const GraphAL<>& graph2, std::size_t num_vertices)
+{
+    for (std::size_t i = 0; i < num_vertices; ++i) {
+        if (graph1.neighbors(i) != graph2.neighbors(i)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+TEST_CASE("GraphALs are copy-constructible", "[GraphAL]")
+{
+    constexpr std::size_t num_vertices = 1000;
+    auto graph = create_random_graph(num_vertices).first;
+    auto copied_graph = graph;
+    REQUIRE(graphs_are_equal(graph, copied_graph, num_vertices));
+}
+
+TEST_CASE("GraphALs are move-constructible", "[GraphAL]")
+{
+    constexpr std::size_t num_vertices = 1000;
+    auto orig_graph = create_random_graph(num_vertices).first;
+    auto copied_graph = orig_graph;
+    auto moved_graph = std::move(orig_graph);
+    REQUIRE(graphs_are_equal(moved_graph, copied_graph, num_vertices));
+}
+
+TEST_CASE("GraphALs are copy-assignable", "[GraphAL]")
+{
+    auto orig_graph = GraphBuilder<>{}.build_adj_list();
+    orig_graph.add_vertex();
+    orig_graph.add_vertex();
+    orig_graph.add_edge(0, 1);
+
+    constexpr std::size_t num_vertices = 1000;
+    auto assigned_graph = create_random_graph(num_vertices).first;
+    orig_graph = assigned_graph;
+    REQUIRE(graphs_are_equal(orig_graph, assigned_graph, num_vertices));
+}
+
+TEST_CASE("GraphALs are move-assignable", "[GraphAL]")
+{
+    auto orig_graph = GraphBuilder<>{}.build_adj_list();
+    orig_graph.add_vertex();
+    orig_graph.add_vertex();
+    orig_graph.add_edge(0, 1);
+
+    constexpr std::size_t num_vertices = 1000;
+    auto assigned_graph = create_random_graph(num_vertices).first;
+    auto copied_graph = assigned_graph;
+    orig_graph = std::move(assigned_graph);
+    REQUIRE(graphs_are_equal(orig_graph, copied_graph, num_vertices));
+}
+
+struct A
+{
+    int x;
+    int y;
+
+    friend bool operator==(const A& a, const std::pair<int, int>& p)
+    {
+        return a.x == p.first && a.y == p.second;
+    }
+};
+
+TEST_CASE("GraphALs can hold satellite data")
+{
+    auto graph = GraphBuilder<A>{}.use_satellite_data().build_adj_list();
+    for (int i = 0; i < 10; ++i) {
+        graph.add_vertex(A{i, i + 1});
+    }
+
+    graph.add_edge(1, 5);
+    graph.add_edge(4, 5);
+    graph.add_edge(2, 5);
+    graph.add_edge(4, 0);
+    graph.add_edge(4, 5);
+    graph.add_edge(5, 7);
+    graph.add_edge(5, 8);
+    graph.add_edge(7, 3);
+    graph.add_edge(8, 9);
+    graph.add_edge(9, 6);
+    graph.add_edge(3, 6);
+
+    for (int i = 0; i < 10; ++i) {
+        REQUIRE(graph[static_cast<std::size_t>(i)].data() == std::make_pair(i, i + 1));
+    }
+
+    graph.remove_vertex(0);
+    for (int i = 0; i < 9; ++i) {
+        REQUIRE(graph[static_cast<std::size_t>(i)].data() == std::make_pair(i + 1, i + 2));
+    }
+}
+
+namespace bork_lib
+{
+    template<>
+    struct default_edge_weight<A>
+    {
+        A operator()() const noexcept { return {0, 0}; }
+    };
+}
+
+TEST_CASE("GraphALs can use non-arithmetic weight functions if default_weight is specialized")
+{
+    auto graph = GraphBuilder<std::size_t, A>{}.directed().weighted().build_adj_list();
+    for (int i = 0; i < 10; ++i) {
+        graph.add_vertex();
+    }
+
+    graph.add_edge(1, 5, A{1, 5});
+    graph.add_edge(4, 5, A{4, 5});
+    graph.add_edge(2, 5, A{2, 5});
+    graph.add_edge(4, 0, A{4, 0});
+    graph.add_edge(4, 5, A{4, 5});
+    graph.add_edge(5, 7, A{5, 7});
+    graph.add_edge(5, 8, A{5, 8});
+    graph.add_edge(7, 3, A{7, 3});
+    graph.add_edge(8, 9, A{8, 9});
+    graph.add_edge(9, 6, A{9, 6});
+    graph.add_edge(3, 6, A{3, 6});
+
+    for (std::size_t i = 0; i < 10; ++i) {
+        for (const auto& neighbor : graph.neighbors(i)) {
+            REQUIRE(neighbor.second == std::make_pair(i, neighbor.first));
+        }
+    }
+}
+
+TEST_CASE("GraphAL size, empty and clear functions work as expected", "[GraphAL]")
+{
+    SECTION("GraphAL size function returns the correct size")
+    {
+        constexpr int num_vertices = 1000;
+        auto large_graph = create_random_graph(num_vertices).first;
+        REQUIRE(large_graph.size() == num_vertices);
+
+        auto small_graph = create_small_graph();
+        REQUIRE(small_graph.size() == 10);
+        small_graph.remove_vertex(5);
+        REQUIRE(small_graph.size() == 9);
+        small_graph.add_vertex();
+        REQUIRE(small_graph.size() == 10);
+    }
+
+    SECTION("GraphAL empty function returns the correct boolean value")
+    {
+        auto graph = GraphBuilder<>{}.build_adj_list();
+        REQUIRE(graph.empty());
+        graph.add_vertex();
+        REQUIRE_FALSE(graph.empty());
+        graph.remove_vertex(0);
+        REQUIRE(graph.empty());
+    }
+
+    SECTION("GraphAL clear function successfully clears the graph")
+    {
+        auto graph = create_small_graph();
+        graph.clear();
+        REQUIRE(graph.empty());
+        REQUIRE(graph.size() == 0);
+        graph.add_vertex();
+        REQUIRE_FALSE(graph.empty());
+        REQUIRE(graph.size() == 1);
+        graph.add_vertex();
+        graph.add_edge(0, 1);
+        REQUIRE_FALSE(graph.empty());
+        REQUIRE(graph.size() == 2);
     }
 }
