@@ -8,33 +8,34 @@
 namespace bork_lib
 {
 
-template<typename V = std::size_t, typename W = int>
+template<typename L = std::size_t, typename V = std::size_t, typename W = int>
 class GraphBuilder
 {
 private:
+    static constexpr std::size_t default_capacity = 8;
+    std::size_t init_capacity;
     bool is_weighted = false;
     bool is_directed = false;
     bool satellite_data = false;
     void validation_check();
 
 public:
-    GraphBuilder() = default;
-    GraphBuilder(const GraphBuilder<V, W>&) = default;
-    GraphBuilder(GraphBuilder<V, W>&&) noexcept = default;
-    GraphBuilder<V, W>& operator=(const GraphBuilder<V, W>&) = default;
-    GraphBuilder<V, W>& operator=(GraphBuilder<V, W>&&) noexcept = default;
+    explicit GraphBuilder(std::size_t init_capacity = default_capacity) : init_capacity{init_capacity} {}
+    GraphBuilder(const GraphBuilder<L, V, W>&) = default;
+    GraphBuilder(GraphBuilder<L, V, W>&&) noexcept = default;
+    GraphBuilder<L, V, W>& operator=(const GraphBuilder<L, V, W>&) = default;
+    GraphBuilder<L, V, W>& operator=(GraphBuilder<L, V, W>&&) noexcept = default;
 
-    GraphBuilder<V, W>& weighted();
-    GraphBuilder<V, W>& directed();
-    GraphBuilder<V, W>& use_satellite_data();
+    GraphBuilder<L, V, W>& weighted();
+    GraphBuilder<L, V, W>& directed();
+    GraphBuilder<L, V, W>& use_satellite_data();
 
-    GraphAL<std::string, V, W> build_adj_list_labeled();
-    GraphAL<std::size_t, V, W> build_adj_list();
-    GraphAM<V, W> build_adj_matrix();
+    GraphAL<L, V, W> build_adj_list();
+    GraphAM<L, V, W> build_adj_matrix();
 };
 
-template<typename V, typename W>
-void GraphBuilder<V, W>::validation_check()
+template<typename L, typename V, typename W>
+void GraphBuilder<L, V, W>::validation_check()
 {
     if (!satellite_data && !std::is_same<V, std::size_t>::value) {
         throw std::invalid_argument("Graph with no satellite data must have vertex of type std::size_t.");
@@ -45,47 +46,46 @@ void GraphBuilder<V, W>::validation_check()
     }
 }
 
-template<typename V, typename W>
-GraphBuilder<V, W>& GraphBuilder<V, W>::weighted()
+template<typename L, typename V, typename W>
+GraphBuilder<L, V, W>& GraphBuilder<L, V, W>::weighted()
 {
     is_weighted = true;
     return *this;
 }
 
-template<typename V, typename W>
-GraphBuilder<V, W>& GraphBuilder<V, W>::directed()
+template<typename L, typename V, typename W>
+GraphBuilder<L, V, W>& GraphBuilder<L, V, W>::directed()
 {
     is_directed = true;
     return *this;
 }
 
-template<typename V, typename W>
-GraphBuilder<V, W>& GraphBuilder<V, W>::use_satellite_data()
+template<typename L, typename V, typename W>
+GraphBuilder<L, V, W>& GraphBuilder<L, V, W>::use_satellite_data()
 {
     satellite_data = true;
     return *this;
 }
 
-template<typename V, typename W>
-GraphAL<std::string, V, W> GraphBuilder<V, W>::build_adj_list_labeled()
+template<typename L, typename V, typename W>
+GraphAL<L, V, W> GraphBuilder<L, V, W>::build_adj_list()
 {
     validation_check();
-    return GraphAL<std::string, V, W>{is_weighted, is_directed, true, satellite_data};
+    return GraphAL<L, V, W>{is_weighted, is_directed, satellite_data, init_capacity};
 }
 
-template<typename V, typename W>
-GraphAL<std::size_t, V, W> GraphBuilder<V, W>::build_adj_list()
+template<typename L, typename V, typename W>
+GraphAM<L, V, W> GraphBuilder<L, V, W>::build_adj_matrix()
 {
     validation_check();
-    return GraphAL<std::size_t, V, W>{is_weighted, is_directed, false, satellite_data};
+    return GraphAM<L, V, W>{is_weighted, is_directed, satellite_data, init_capacity};
 }
 
-template<typename V, typename W>
-GraphAM<V, W> GraphBuilder<V, W>::build_adj_matrix()
-{
-    validation_check();
-    return GraphAM<V, W>{is_weighted, is_directed, false, satellite_data};
-}
+template<typename V = std::size_t, typename W = int>
+using BasicGraphBuilder = GraphBuilder<std::size_t, V, W>;
+
+template<typename V = std::size_t, typename W = int>
+using LabeledGraphBuilder = GraphBuilder<std::string, V, W>;
 
 } // end namespace
 

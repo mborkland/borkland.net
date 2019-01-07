@@ -4,7 +4,8 @@
 #include "../../catch/catch.hpp"
 #include "../src/GraphBuilder.hpp"
 
-using bork_lib::GraphBuilder;
+using bork_lib::BasicGraphBuilder;
+using bork_lib::LabeledGraphBuilder;
 using bork_lib::GraphAL;
 
 std::random_device rd;
@@ -13,7 +14,7 @@ TEST_CASE("GraphAL can be constructed using GraphBuilder", "[GraphAL]")
 {
     SECTION("Default graph can be constructed")
     {
-        auto graph = GraphBuilder<>{}.build_adj_list();
+        auto graph = BasicGraphBuilder<>{}.build_adj_list();
         REQUIRE(!graph.directed());
         REQUIRE(!graph.has_satellite_data());
         REQUIRE(!graph.labeled());
@@ -22,7 +23,7 @@ TEST_CASE("GraphAL can be constructed using GraphBuilder", "[GraphAL]")
 
     SECTION("Weighted graph can be constructed")
     {
-        auto graph = GraphBuilder<>{}.weighted().build_adj_list();
+        auto graph = BasicGraphBuilder<>{}.weighted().build_adj_list();
         REQUIRE(!graph.directed());
         REQUIRE(!graph.has_satellite_data());
         REQUIRE(!graph.labeled());
@@ -31,7 +32,7 @@ TEST_CASE("GraphAL can be constructed using GraphBuilder", "[GraphAL]")
 
     SECTION("Graph with satellite data can be constructed")
     {
-        auto graph = GraphBuilder<>{}.use_satellite_data().build_adj_list();
+        auto graph = BasicGraphBuilder<>{}.use_satellite_data().build_adj_list();
         REQUIRE(!graph.directed());
         REQUIRE(graph.has_satellite_data());
         REQUIRE(!graph.labeled());
@@ -40,7 +41,7 @@ TEST_CASE("GraphAL can be constructed using GraphBuilder", "[GraphAL]")
 
     SECTION("Directed graph can be constructed")
     {
-        auto graph = GraphBuilder<>{}.directed().build_adj_list();
+        auto graph = BasicGraphBuilder<>{}.directed().build_adj_list();
         REQUIRE(graph.directed());
         REQUIRE(!graph.has_satellite_data());
         REQUIRE(!graph.labeled());
@@ -49,7 +50,7 @@ TEST_CASE("GraphAL can be constructed using GraphBuilder", "[GraphAL]")
 
     SECTION("Labeled graph can be constructed")
     {
-        auto graph = GraphBuilder<>{}.build_adj_list_labeled();
+        auto graph = LabeledGraphBuilder<>{}.build_adj_list();
         REQUIRE(!graph.directed());
         REQUIRE(!graph.has_satellite_data());
         REQUIRE(graph.labeled());
@@ -58,7 +59,7 @@ TEST_CASE("GraphAL can be constructed using GraphBuilder", "[GraphAL]")
 
     SECTION("Graph with multiple build options can be constructed")
     {
-        auto graph = GraphBuilder<>{}.directed().weighted().build_adj_list();
+        auto graph = BasicGraphBuilder<>{}.directed().weighted().build_adj_list();
         REQUIRE(graph.directed());
         REQUIRE(!graph.has_satellite_data());
         REQUIRE(!graph.labeled());
@@ -69,7 +70,7 @@ TEST_CASE("GraphAL can be constructed using GraphBuilder", "[GraphAL]")
 std::pair<GraphAL<>, std::vector<std::unordered_map<std::size_t, int>>>
         create_random_graph(std::size_t num_vertices, bool directed = false, bool weighted = false)
 {
-    GraphBuilder<> builder;
+    BasicGraphBuilder<> builder;
     if (directed) {
         builder.directed();
     }
@@ -243,7 +244,7 @@ TEST_CASE("Vertices and edges can be added to GraphALs in various ways", "[Graph
 GraphAL<> create_small_graph(bool directed = false, bool weighted = false, bool has_satellite_data = false)
 {
     constexpr std::size_t num_vertices = 10;
-    GraphBuilder<> builder;
+    BasicGraphBuilder<> builder;
     if (directed) {
         builder.directed();
     }
@@ -264,7 +265,6 @@ GraphAL<> create_small_graph(bool directed = false, bool weighted = false, bool 
     graph.add_edge(4, 5, weight(mt));
     graph.add_edge(2, 5, weight(mt));
     graph.add_edge(4, 0, weight(mt));
-    graph.add_edge(4, 5, weight(mt));
     graph.add_edge(5, 7, weight(mt));
     graph.add_edge(5, 8, weight(mt));
     graph.add_edge(7, 3, weight(mt));
@@ -276,7 +276,7 @@ GraphAL<> create_small_graph(bool directed = false, bool weighted = false, bool 
 
 GraphAL<std::string> create_small_labeled_graph(bool directed = false, bool weighted = false, bool has_satellite_data = false)
 {
-    GraphBuilder<> builder;
+    LabeledGraphBuilder<> builder;
     if (directed) {
         builder.directed();
     }
@@ -286,7 +286,7 @@ GraphAL<std::string> create_small_labeled_graph(bool directed = false, bool weig
     if (has_satellite_data) {
         builder.use_satellite_data();
     }
-    auto graph = builder.build_adj_list_labeled();
+    auto graph = builder.build_adj_list();
 
     graph.add_vertex("Tampa");
     graph.add_vertex("St. Petersburg");
@@ -516,6 +516,87 @@ TEST_CASE("GraphALs can be subscripted", "[GraphAL]")
     }
 }
 
+TEST_CASE("Edge weight function returns the weight between two edges for a GraphAL", "[GraphAL]")
+{
+    SECTION("Edge weights can be found in undirected graphs")
+    {
+        auto graph = create_small_graph(false, true);
+        REQUIRE(graph.edge_weight(1, 5) == graph.neighbors(1)[5]);
+        REQUIRE(graph.edge_weight(1, 5) == graph.edge_weight(5, 1));
+
+        REQUIRE(graph.edge_weight(4, 5) == graph.neighbors(4)[5]);
+        REQUIRE(graph.edge_weight(4, 5) == graph.edge_weight(5, 4));
+
+        REQUIRE(graph.edge_weight(2, 5) == graph.neighbors(2)[5]);
+        REQUIRE(graph.edge_weight(2, 5) == graph.edge_weight(5, 2));
+
+        REQUIRE(graph.edge_weight(4, 0) == graph.neighbors(4)[0]);
+        REQUIRE(graph.edge_weight(4, 0) == graph.edge_weight(0, 4));
+
+        REQUIRE(graph.edge_weight(5, 7) == graph.neighbors(5)[7]);
+        REQUIRE(graph.edge_weight(5, 7) == graph.edge_weight(7, 5));
+
+        REQUIRE(graph.edge_weight(5, 8) == graph.neighbors(5)[8]);
+        REQUIRE(graph.edge_weight(5, 8) == graph.edge_weight(8, 5));
+
+        REQUIRE(graph.edge_weight(7, 3) == graph.neighbors(7)[3]);
+        REQUIRE(graph.edge_weight(7, 3) == graph.edge_weight(3, 7));
+
+        REQUIRE(graph.edge_weight(8, 9) == graph.neighbors(8)[9]);
+        REQUIRE(graph.edge_weight(8, 9) == graph.edge_weight(9, 8));
+
+        REQUIRE(graph.edge_weight(9, 6) == graph.neighbors(9)[6]);
+        REQUIRE(graph.edge_weight(9, 6) == graph.edge_weight(6, 9));
+
+        REQUIRE(graph.edge_weight(3, 6) == graph.neighbors(3)[6]);
+        REQUIRE(graph.edge_weight(3, 6) == graph.edge_weight(6, 3));
+
+        REQUIRE_FALSE(graph.edge_weight(1, 4));
+        REQUIRE_FALSE(graph.edge_weight(2, 4));
+        REQUIRE_FALSE(graph.edge_weight(6, 7));
+        REQUIRE_FALSE(graph.edge_weight(7, 9));
+    }
+
+    SECTION("Edge weights can be found in directed graphs")
+    {
+        auto graph = create_small_graph(true, true);
+        REQUIRE(graph.edge_weight(1, 5) == graph.neighbors(1)[5]);
+        REQUIRE_FALSE(graph.edge_weight(5, 1));
+
+        REQUIRE(graph.edge_weight(4, 5) == graph.neighbors(4)[5]);
+        REQUIRE_FALSE(graph.edge_weight(5, 4));
+
+        REQUIRE(graph.edge_weight(2, 5) == graph.neighbors(2)[5]);
+        REQUIRE_FALSE(graph.edge_weight(5, 2));
+
+        REQUIRE(graph.edge_weight(4, 0) == graph.neighbors(4)[0]);
+        REQUIRE_FALSE(graph.edge_weight(0, 4));
+
+        REQUIRE(graph.edge_weight(5, 7) == graph.neighbors(5)[7]);
+        REQUIRE_FALSE(graph.edge_weight(7, 5));
+
+        REQUIRE(graph.edge_weight(5, 8) == graph.neighbors(5)[8]);
+        REQUIRE_FALSE(graph.edge_weight(8, 5));
+
+        REQUIRE(graph.edge_weight(7, 3) == graph.neighbors(7)[3]);
+        REQUIRE_FALSE(graph.edge_weight(3, 7));
+
+        REQUIRE(graph.edge_weight(8, 9) == graph.neighbors(8)[9]);
+        REQUIRE_FALSE(graph.edge_weight(9, 8));
+
+        REQUIRE(graph.edge_weight(9, 6) == graph.neighbors(9)[6]);
+        REQUIRE_FALSE(graph.edge_weight(6, 9));
+
+        REQUIRE(graph.edge_weight(3, 6) == graph.neighbors(3)[6]);
+        REQUIRE_FALSE(graph.edge_weight(6, 3));
+
+        REQUIRE_FALSE(graph.edge_weight(1, 4));
+        REQUIRE_FALSE(graph.edge_weight(2, 4));
+        REQUIRE_FALSE(graph.edge_weight(6, 7));
+        REQUIRE_FALSE(graph.edge_weight(7, 9));
+    }
+}
+
 TEST_CASE("GraphALs can be searched using breadth-first search", "[GraphAL]")
 {
     SECTION("BFS accesses all vertices for an undirected, connected graph")
@@ -606,7 +687,7 @@ TEST_CASE("GraphALs can be searched using depth-first search", "[GraphAL]")
     {
         auto graph = create_small_graph();
         std::set<std::size_t> vertices_accessed;
-        graph.dfs([&](auto vertex){ vertices_accessed.insert(vertex); });
+        graph.dfs(1, [&](auto vertex){ vertices_accessed.insert(vertex); });
         std::size_t i = 0;
         for (std::size_t vertex_accessed : vertices_accessed) {
             REQUIRE(vertex_accessed == i);
@@ -614,29 +695,34 @@ TEST_CASE("GraphALs can be searched using depth-first search", "[GraphAL]")
         }
     }
 
-    SECTION("DFS accesses all vertices in a directed, connected graph")
+    SECTION("DFS does not access all vertices in a directed, connected graph when some vertices are not reachable from the start vertex")
     {
         auto graph = create_small_graph(true);
         std::set<std::size_t> vertices_accessed;
-        graph.dfs([&](auto vertex){ vertices_accessed.insert(vertex); });
-        std::size_t i = 0;
-        for (std::size_t vertex_accessed : vertices_accessed) {
-            REQUIRE(vertex_accessed == i);
-            ++i;
-        }
+        graph.dfs(1, [&](auto vertex){ vertices_accessed.insert(vertex); });
+        REQUIRE(vertices_accessed.find(2) == vertices_accessed.end());
+        REQUIRE(vertices_accessed.find(4) == vertices_accessed.end());
+        REQUIRE(vertices_accessed.find(0) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(1) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(5) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(7) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(8) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(9) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(6) == vertices_accessed.end());
+        REQUIRE_FALSE(vertices_accessed.find(3) == vertices_accessed.end());
     }
 
     SECTION("DFS returns correct parent data for an undirected graph")
     {
         auto graph = create_small_graph();
-        auto dfs_data = graph.dfs();
-        REQUIRE(dfs_data[0].parent == 4);
-        REQUIRE(dfs_data[4].parent == 5);
-        REQUIRE(dfs_data[5].parent == 7);
-        REQUIRE(dfs_data[1].parent == 5);
+        auto dfs_data = graph.dfs(1);
+        REQUIRE(dfs_data[1].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(dfs_data[5].parent == 1);
         REQUIRE(dfs_data[2].parent == 5);
+        REQUIRE(dfs_data[4].parent == 5);
+        REQUIRE(dfs_data[0].parent == 4);
         REQUIRE(dfs_data[8].parent == 5);
-        REQUIRE(dfs_data[9].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(dfs_data[9].parent == 8);
         REQUIRE(dfs_data[6].parent == 9);
         REQUIRE(dfs_data[3].parent == 6);
         REQUIRE(dfs_data[7].parent == 3);
@@ -645,17 +731,17 @@ TEST_CASE("GraphALs can be searched using depth-first search", "[GraphAL]")
     SECTION("DFS returns correct parent data for a directed graph")
     {
         auto graph = create_small_graph(true);
-        auto dfs_data = graph.dfs();
-        REQUIRE(dfs_data[0].parent == std::numeric_limits<std::size_t>::max());
+        auto dfs_data = graph.dfs(1);
         REQUIRE(dfs_data[1].parent == std::numeric_limits<std::size_t>::max());
         REQUIRE(dfs_data[5].parent == 1);
-        REQUIRE(dfs_data[8].parent == std::numeric_limits<std::size_t>::max());
-        REQUIRE(dfs_data[9].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(dfs_data[8].parent == 5);
+        REQUIRE(dfs_data[9].parent == 8);
         REQUIRE(dfs_data[6].parent == 9);
-        REQUIRE(dfs_data[7].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(dfs_data[7].parent == 5);
         REQUIRE(dfs_data[3].parent == 7);
-        REQUIRE(dfs_data[2].parent == std::numeric_limits<std::size_t>::max());
         REQUIRE(dfs_data[4].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(dfs_data[2].parent == std::numeric_limits<std::size_t>::max());
+        REQUIRE(dfs_data[0].parent == std::numeric_limits<std::size_t>::max());
     }
 }
 
@@ -689,7 +775,7 @@ TEST_CASE("GraphALs are move-constructible", "[GraphAL]")
 
 TEST_CASE("GraphALs are copy-assignable", "[GraphAL]")
 {
-    auto orig_graph = GraphBuilder<>{}.build_adj_list();
+    auto orig_graph = BasicGraphBuilder<>{}.build_adj_list();
     orig_graph.add_vertex();
     orig_graph.add_vertex();
     orig_graph.add_edge(0, 1);
@@ -702,7 +788,7 @@ TEST_CASE("GraphALs are copy-assignable", "[GraphAL]")
 
 TEST_CASE("GraphALs are move-assignable", "[GraphAL]")
 {
-    auto orig_graph = GraphBuilder<>{}.build_adj_list();
+    auto orig_graph = BasicGraphBuilder<>{}.build_adj_list();
     orig_graph.add_vertex();
     orig_graph.add_vertex();
     orig_graph.add_edge(0, 1);
@@ -727,7 +813,7 @@ struct A
 
 TEST_CASE("GraphALs can hold satellite data")
 {
-    auto graph = GraphBuilder<A>{}.use_satellite_data().build_adj_list();
+    auto graph = BasicGraphBuilder<A>{}.use_satellite_data().build_adj_list();
     for (int i = 0; i < 10; ++i) {
         graph.add_vertex(A{i, i + 1});
     }
@@ -765,7 +851,7 @@ namespace bork_lib
 
 TEST_CASE("GraphALs can use non-arithmetic weight functions if default_weight is specialized")
 {
-    auto graph = GraphBuilder<std::size_t, A>{}.directed().weighted().build_adj_list();
+    auto graph = BasicGraphBuilder<std::size_t, A>{}.directed().weighted().build_adj_list();
     for (int i = 0; i < 10; ++i) {
         graph.add_vertex();
     }
@@ -807,7 +893,7 @@ TEST_CASE("GraphAL size, empty and clear functions work as expected", "[GraphAL]
 
     SECTION("GraphAL empty function returns the correct boolean value")
     {
-        auto graph = GraphBuilder<>{}.build_adj_list();
+        auto graph = BasicGraphBuilder<>{}.build_adj_list();
         REQUIRE(graph.empty());
         graph.add_vertex();
         REQUIRE_FALSE(graph.empty());

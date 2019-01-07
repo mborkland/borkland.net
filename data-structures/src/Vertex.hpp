@@ -7,7 +7,8 @@
 namespace bork_lib
 {
 
-template<typename A, typename V, typename W> class Graph;
+template<typename L, typename V, typename W> class GraphAL;
+template<typename L, typename V, typename W> class GraphAM;
 
 template<typename V = size_t>
 class Vertex
@@ -42,6 +43,7 @@ public:
     }
 
     template<typename A, typename B, typename C> friend class GraphAL;
+    template<typename A, typename B, typename C> friend class GraphAM;
 };
 
 } // end namespace
