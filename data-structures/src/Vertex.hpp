@@ -10,6 +10,8 @@ namespace bork_lib
 template<typename L, typename V, typename W> class GraphAL;
 template<typename L, typename V, typename W> class GraphAM;
 
+/* Template parameter:
+ * V = the type of the data held in the vertex */
 template<typename V = size_t>
 class Vertex
 {

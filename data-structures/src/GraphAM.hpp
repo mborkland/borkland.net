@@ -2,53 +2,54 @@
 #define GRAPH_AM_HPP
 
 #include <functional>
+#include <iterator>
 #include "Graph.hpp"
 
 namespace bork_lib
 {
 
-template<typename L, typename V, typename W> class GraphBuilder;
+template<typename L, typename W, typename V> class GraphBuilder;
 
 /* Template parameters:
  * L = label type
  * V = vertex type
  * W = weight type */
-template<typename L = std::size_t, typename V = std::size_t, typename W = int>
-class GraphAM : public Graph<std::vector<std::vector<W>>, L, V, W>
+template<typename L = std::size_t, typename W = int, typename V = std::size_t>
+class GraphAM : public Graph<std::vector<std::vector<W>>, L, W, V>
 {
 private:
     using AdjType = std::vector<W>;
     using AdjMatrixType = std::vector<AdjType>;
-    using Graph<AdjMatrixType, L, V, W>::vertices;
-    using Graph<AdjMatrixType, L, V, W>::adj_structure;
-    using Graph<AdjMatrixType, L, V, W>::current_key;
-    using Graph<AdjMatrixType, L, V, W>::graph_capacity;
-    using Graph<AdjMatrixType, L, V, W>::invalid_label_exception;
-    using Graph<AdjMatrixType, L, V, W>::invalid_edge_exception;
-    using Graph<AdjMatrixType, L, V, W>::change_label_exception;
-    using Graph<AdjMatrixType, L, V, W>::duplicate_label_exception;
-    using Graph<AdjMatrixType, L, V, W>::valid_label_check;
-    using Graph<AdjMatrixType, L, V, W>::shift_vertices;
-    using Graph<AdjMatrixType, L, V, W>::is_weighted;
-    using Graph<AdjMatrixType, L, V, W>::is_directed;
-    using Graph<AdjMatrixType, L, V, W>::is_labeled;
-    using Graph<AdjMatrixType, L, V, W>::satellite_data;
+    using Graph<AdjMatrixType, L, W, V>::vertices;
+    using Graph<AdjMatrixType, L, W, V>::adj_structure;
+    using Graph<AdjMatrixType, L, W, V>::current_key;
+    using Graph<AdjMatrixType, L, W, V>::graph_capacity;
+    using Graph<AdjMatrixType, L, W, V>::invalid_label_exception;
+    using Graph<AdjMatrixType, L, W, V>::invalid_edge_exception;
+    using Graph<AdjMatrixType, L, W, V>::change_label_exception;
+    using Graph<AdjMatrixType, L, W, V>::duplicate_label_exception;
+    using Graph<AdjMatrixType, L, W, V>::valid_label_check;
+    using Graph<AdjMatrixType, L, W, V>::shift_vertices;
+    using Graph<AdjMatrixType, L, W, V>::is_weighted;
+    using Graph<AdjMatrixType, L, W, V>::is_directed;
+    using Graph<AdjMatrixType, L, W, V>::is_labeled;
+    using Graph<AdjMatrixType, L, W, V>::satellite_data;
 
 public:
-    using Graph<AdjMatrixType, L, V, W>::add_vertex;
-    using Graph<AdjMatrixType, L, V, W>::add_edge;
-    using Graph<AdjMatrixType, L, V, W>::remove_edge;
-    using Graph<AdjMatrixType, L, V, W>::remove_vertex;
-    using Graph<AdjMatrixType, L, V, W>::size;
+    using Graph<AdjMatrixType, L, W, V>::add_vertex;
+    using Graph<AdjMatrixType, L, W, V>::add_edge;
+    using Graph<AdjMatrixType, L, W, V>::remove_edge;
+    using Graph<AdjMatrixType, L, W, V>::remove_vertex;
+    using Graph<AdjMatrixType, L, W, V>::size;
     using label_type = L;
     using vertex_type = V;
     using weight_type = W;
 
     // no manual memory management so compiler-generated functions are sufficient
-    GraphAM(const GraphAM<L, V, W>&) = default;
-    GraphAM(GraphAM<L, V, W>&&) noexcept = default;
-    GraphAM& operator=(const GraphAM<L, V, W>&) = default;
-    GraphAM& operator=(GraphAM<L, V, W>&&) noexcept = default;
+    GraphAM(const GraphAM<L, W, V>&) = default;
+    GraphAM(GraphAM<L, W, V>&&) noexcept = default;
+    GraphAM& operator=(const GraphAM<L, W, V>&) = default;
+    GraphAM& operator=(GraphAM<L, W, V>&&) noexcept = default;
 
     void add_vertex(const std::vector<std::pair<L, W>>& outgoing_edges,
                     const std::vector<std::pair<L, W>>& incoming_edges,
@@ -71,8 +72,9 @@ private:
     std::size_t get_index(const label_type& label) const;
     std::size_t get_index(const label_type& label);
 
-    using iter_type = typename Graph<AdjMatrixType, L, V, W>::iter_type;
-    mutable std::vector<std::unordered_map<L, W>> dfs_neighbor_lists;
+    mutable std::vector<std::unordered_map<L, W>> dfs_neighbor_lists;  /* a buffer to hold the vertices's neighbor
+                                                                          lists during DFS */
+    using iter_type = typename Graph<AdjMatrixType, L, W, V>::iter_type;
     iter_type first_neighbor(const label_type& label) const noexcept override;
     iter_type neighbors_end(const label_type& label) const noexcept override;
 
@@ -82,22 +84,22 @@ private:
     void increase_capacity(std::size_t new_capacity);
 
     GraphAM(bool is_weighted, bool is_directed, bool data_is_key, std::size_t init_capacity)
-        : Graph<AdjMatrixType, L, V, W>::Graph(is_weighted, is_directed, data_is_key, init_capacity)
+        : Graph<AdjMatrixType, L, W, V>::Graph(is_weighted, is_directed, data_is_key, init_capacity)
         { increase_capacity(graph_capacity); }
 
-    friend GraphBuilder<L, V, W>;
+    friend GraphBuilder<L, W, V>;
 };
 
 /* Adds a vertex to the graph. Overloads are available to make it possible to specify almost any
  * combination of input arguments. However, it is not possible to specify incoming_edges and not
  * outgoing_edges due to ambiguity. Overrides the base class function of the same name, calls the
  * base class function and then handles changes that need to be made to the adjacency matrix. */
-template<typename L, typename V, typename W>
-void GraphAM<L, V, W>::add_vertex(const std::vector<std::pair<L, W>>& outgoing_edges,
+template<typename L, typename W, typename V>
+void GraphAM<L, W, V>::add_vertex(const std::vector<std::pair<L, W>>& outgoing_edges,
                                   const std::vector<std::pair<L, W>>& incoming_edges,
                                   const V& data, const std::string& label)
 {
-    Graph<AdjMatrixType, L, V, W>::add_vertex(outgoing_edges, incoming_edges, data, label);
+    Graph<AdjMatrixType, L, W, V>::add_vertex(outgoing_edges, incoming_edges, data, label);
     if (current_key >= graph_capacity) {
         reserve(graph_capacity * 2);
     }
@@ -146,8 +148,8 @@ void GraphAM<L, V, W>::add_vertex(const std::vector<std::pair<L, W>>& outgoing_e
 
 /* Adds an edge to the graph. Weight parameter is optional due to an overload in the
  * base class. */
-template<typename L, typename V, typename W>
-void GraphAM<L, V, W>::add_edge(const label_type& orig, const label_type& dest, const weight_type& weight)
+template<typename L, typename W, typename V>
+void GraphAM<L, W, V>::add_edge(const label_type& orig, const label_type& dest, const weight_type& weight)
 {
     valid_label_check(orig, dest);
     auto actual_weight = is_weighted ? weight : default_edge_weight<W>{}();
@@ -160,8 +162,9 @@ void GraphAM<L, V, W>::add_edge(const label_type& orig, const label_type& dest, 
     }
 }
 
-template<typename L, typename V, typename W>
-void GraphAM<L, V, W>::remove_edge(const label_type& orig, const label_type& dest)
+/* Removes an edge from the graph. */
+template<typename L, typename W, typename V>
+void GraphAM<L, W, V>::remove_edge(const label_type& orig, const label_type& dest)
 {
     valid_label_check(orig, dest);
     auto orig_index = get_index(orig);
@@ -178,8 +181,9 @@ void GraphAM<L, V, W>::remove_edge(const label_type& orig, const label_type& des
     }
 }
 
-template<typename L, typename V, typename W>
-std::unordered_map<L, W> GraphAM<L, V, W>::neighbors(const label_type& label) const
+/* Returns the neighbors of the given vertex as a std::unordered_map<L, W>. */
+template<typename L, typename W, typename V>
+std::unordered_map<L, W> GraphAM<L, W, V>::neighbors(const label_type& label) const
 {
     std::unordered_map<L, W> neighbor_map;
     AdjType neighbors;
@@ -206,8 +210,9 @@ std::unordered_map<L, W> GraphAM<L, V, W>::neighbors(const label_type& label) co
     return neighbor_map;
 }
 
-template<typename L, typename V, typename W>
-std::optional<W> GraphAM<L, V, W>::edge_weight(const label_type& orig, const label_type& dest) const noexcept
+/* Returns the weight of an edge between two vertices, if it exists. */
+template<typename L, typename W, typename V>
+std::optional<W> GraphAM<L, W, V>::edge_weight(const label_type& orig, const label_type& dest) const noexcept
 {
     W weight;
     if constexpr (is_labeled) {
@@ -228,8 +233,9 @@ std::optional<W> GraphAM<L, V, W>::edge_weight(const label_type& orig, const lab
     }
 }
 
-template<typename L, typename V, typename W>
-void GraphAM<L, V, W>::change_label(const label_type& label, const label_type& new_label)
+/* Allows the user to change the label of a labeled graph. */
+template<typename L, typename W, typename V>
+void GraphAM<L, W, V>::change_label(const label_type& label, const label_type& new_label)
 {
     if constexpr (!is_labeled) {
         throw std::logic_error{change_label_exception};
@@ -250,12 +256,16 @@ void GraphAM<L, V, W>::change_label(const label_type& label, const label_type& n
     }
 }
 
-template<typename L, typename V, typename W>
-void GraphAM<L, V, W>::reserve(std::size_t new_capacity)
+/* Allows the user to reserve space in the adjacency matrix to reduce reallocations
+ * and to increase the bucket count of the underlying hash tables to reduce rehashes. */
+template<typename L, typename W, typename V>
+void GraphAM<L, W, V>::reserve(std::size_t new_capacity)
 {
     if (new_capacity > graph_capacity) {
         vertices.reserve(new_capacity);
         dfs_neighbor_lists.reserve(new_capacity);
+        keys_to_labels.reserve(new_capacity);
+        labels_to_keys.reserve(new_capacity);
         auto adj_size = adj_structure.size();
         for (std::size_t index = 0; index < adj_size; ++index) {
             adj_structure[index].reserve(new_capacity);
@@ -266,31 +276,38 @@ void GraphAM<L, V, W>::reserve(std::size_t new_capacity)
     }
 }
 
-template<typename L, typename V, typename W>
-void GraphAM<L, V, W>::shrink_to_fit()
+/* Allows the user to reduce the capacity of any std::vector used by the class
+ * to a size equal to the number of vertices. */
+template<typename L, typename W, typename V>
+void GraphAM<L, W, V>::shrink_to_fit()
 {
-    if (graph_capacity > adj_structure.size()) {
-        graph_capacity = adj_structure.size();
-        adj_structure.shrink_to_fit();
+    if (graph_capacity > size()) {
+        dfs_neighbor_lists.shrink_to_fit();
+        keys_to_labels.shrink_to_fit();
+        auto it = adj_structure.begin();
+        std::advance(it, size());
+        adj_structure.erase(it, adj_structure.end());
         for (auto& neighbors : adj_structure) {
             neighbors.shrink_to_fit();
         }
-        dfs_neighbor_lists.shrink_to_fit();
+        graph_capacity = adj_structure.size();
     }
 }
 
-template<typename L, typename V, typename W>
-void GraphAM<L, V, W>::clear() noexcept
+/* Extension of the base class clear function that clears the extra data
+ * structures needed by GraphAM. */
+template<typename L, typename W, typename V>
+void GraphAM<L, W, V>::clear() noexcept
 {
-    Graph<AdjMatrixType, L, V, W>::clear();
     labels_to_keys.clear();
     keys_to_labels.clear();
     dfs_neighbor_lists.clear();
+    Graph<AdjMatrixType, L, W, V>::clear();
 }
 
 /* Checks an edge initializer list passed into the add_vertex function for validity. */
-template<typename L, typename V, typename W>
-void GraphAM<L, V, W>::check_edge_list(const std::vector<std::pair<L, W>>& edges)
+template<typename L, typename W, typename V>
+void GraphAM<L, W, V>::check_edge_list(const std::vector<std::pair<L, W>>& edges)
 {
     for (const auto& [neighbor, _] : edges) {
         auto neighbor_index = get_index(neighbor);
@@ -300,8 +317,10 @@ void GraphAM<L, V, W>::check_edge_list(const std::vector<std::pair<L, W>>& edges
     }
 }
 
-template<typename L, typename V, typename W>
-std::size_t GraphAM<L, V, W>::get_index(const label_type& label) const
+/* Returns the correct index of the adjacency matrix that corresponds to a label,
+ * const version. */
+template<typename L, typename W, typename V>
+std::size_t GraphAM<L, W, V>::get_index(const label_type& label) const
 {
     if constexpr (is_labeled) {
         return labels_to_keys.at(label);
@@ -310,8 +329,10 @@ std::size_t GraphAM<L, V, W>::get_index(const label_type& label) const
     }
 }
 
-template<typename L, typename V, typename W>
-std::size_t GraphAM<L, V, W>::get_index(const label_type& label)
+/* Returns the correct index of the adjacency matrix that corresponds to a label,
+ * non-const version. */
+template<typename L, typename W, typename V>
+std::size_t GraphAM<L, W, V>::get_index(const label_type& label)
 {
     if constexpr (is_labeled) {
         return labels_to_keys[label];
@@ -320,23 +341,26 @@ std::size_t GraphAM<L, V, W>::get_index(const label_type& label)
     }
 }
 
-template<typename L, typename V, typename W>
-typename GraphAM<L, V, W>::iter_type GraphAM<L, V, W>::first_neighbor(const label_type& label) const noexcept
+/* Used in a DFS search to find the first neighbor in a vertex's neighbor set. */
+template<typename L, typename W, typename V>
+typename GraphAM<L, W, V>::iter_type GraphAM<L, W, V>::first_neighbor(const label_type& label) const noexcept
 {
     auto index = get_index(label);
     dfs_neighbor_lists[index] = neighbors(label);
     return dfs_neighbor_lists[index].cbegin();
 }
 
-template<typename L, typename V, typename W>
-typename GraphAM<L, V, W>::iter_type GraphAM<L, V, W>::neighbors_end(const label_type& label) const noexcept
+/* Used in a DFS search to indicate the end of a vertex's neighbor set. */
+template<typename L, typename W, typename V>
+typename GraphAM<L, W, V>::iter_type GraphAM<L, W, V>::neighbors_end(const label_type& label) const noexcept
 {
     auto index = get_index(label);
     return dfs_neighbor_lists[index].cend();
 }
 
-template<typename L, typename V, typename W>
-void GraphAM<L, V, W>::remove_string_vertex(const std::string& label)
+/* Removes a vertex in a labeled graph. */
+template<typename L, typename W, typename V>
+void GraphAM<L, W, V>::remove_string_vertex(const std::string& label)
 {
     if constexpr (is_labeled) {
         auto key = labels_to_keys[label];
@@ -353,8 +377,9 @@ void GraphAM<L, V, W>::remove_string_vertex(const std::string& label)
     }
 }
 
-template<typename L, typename V, typename W>
-void GraphAM<L, V, W>::remove_numeric_vertex(std::size_t key)
+/* Removes a vertex in an unlabeled graph. */
+template<typename L, typename W, typename V>
+void GraphAM<L, W, V>::remove_numeric_vertex(std::size_t key)
 {
     auto signed_key = static_cast<long long>(key);
     for (std::size_t index = 0; index < size(); ++index) {
@@ -369,8 +394,9 @@ void GraphAM<L, V, W>::remove_numeric_vertex(std::size_t key)
     }
 }
 
-template<typename L, typename V, typename W>
-void GraphAM<L, V, W>::increase_capacity(std::size_t new_capacity)
+/* Increases the capacity of the adjacency matrix. */
+template<typename L, typename W, typename V>
+void GraphAM<L, W, V>::increase_capacity(std::size_t new_capacity)
 {
     adj_structure.reserve(new_capacity);
     auto adj_size = adj_structure.size();

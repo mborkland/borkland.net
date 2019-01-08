@@ -154,26 +154,6 @@ void add_vertices_with_init_list(std::pair<GraphAL<>, std::vector<std::unordered
     }
 }
 
-void valid_graph_test(const std::pair<GraphAL<>, std::vector<std::unordered_map<std::size_t, int>>>& graph_pair)
-{
-    auto [graph, adj_list] = graph_pair;
-    for (std::size_t i = 0; i < adj_list.size(); ++i) {
-        auto neighbors = graph.neighbors(i);
-        for (auto neighbor : adj_list[i]) {
-            auto it = neighbors.find(neighbor.first);
-            REQUIRE_FALSE(it == neighbors.end());
-            REQUIRE(it->second == neighbor.second);
-        }
-    }
-}
-
-void init_list_test(std::size_t num_vertices, std::size_t vertices_to_add, bool directed = false, bool weighted = false)
-{
-    auto graph_pair = create_random_graph(num_vertices, directed, weighted);
-    add_vertices_with_init_list(graph_pair, num_vertices, vertices_to_add, directed, weighted);
-    valid_graph_test(graph_pair);
-}
-
 TEST_CASE("Vertices and edges can be added to GraphALs in various ways", "[GraphAL]")
 {
     SECTION("Vertices and edges can be added to undirected GraphALs in various ways")
@@ -181,14 +161,33 @@ TEST_CASE("Vertices and edges can be added to GraphALs in various ways", "[Graph
         SECTION("Edges can be added manually to existing vertices")
         {
             constexpr std::size_t num_vertices = 1000;
-            valid_graph_test(create_random_graph(num_vertices));
+            auto graph_pair = create_random_graph(num_vertices);
+            auto [graph, adj_list] = graph_pair;
+            for (std::size_t i = 0; i < adj_list.size(); ++i) {
+                auto neighbors = graph.neighbors(i);
+                for (auto neighbor : adj_list[i]) {
+                    auto it = neighbors.find(neighbor.first);
+                    REQUIRE_FALSE(it == neighbors.end());
+                    REQUIRE(it->second == neighbor.second);
+                }
+            }
         }
 
         SECTION("Edges and vertices and be added using a vector of pairs")
         {
             constexpr std::size_t num_vertices = 1000;
             constexpr std::size_t vertices_to_add = 1000;
-            init_list_test(num_vertices, vertices_to_add);
+            auto graph_pair = create_random_graph(num_vertices);
+            add_vertices_with_init_list(graph_pair, num_vertices, vertices_to_add);
+            auto [graph, adj_list] = graph_pair;
+            for (std::size_t i = 0; i < adj_list.size(); ++i) {
+                auto neighbors = graph.neighbors(i);
+                for (auto neighbor : adj_list[i]) {
+                    auto it = neighbors.find(neighbor.first);
+                    REQUIRE_FALSE(it == neighbors.end());
+                    REQUIRE(it->second == neighbor.second);
+                }
+            }
         }
     }
 
@@ -197,14 +196,33 @@ TEST_CASE("Vertices and edges can be added to GraphALs in various ways", "[Graph
         SECTION("Edges can be added manually to existing vertices")
         {
             constexpr std::size_t num_vertices = 1000;
-            valid_graph_test(create_random_graph(num_vertices, true));
+            auto graph_pair = create_random_graph(num_vertices, true);
+            auto [graph, adj_list] = graph_pair;
+            for (std::size_t i = 0; i < adj_list.size(); ++i) {
+                auto neighbors = graph.neighbors(i);
+                for (auto neighbor : adj_list[i]) {
+                    auto it = neighbors.find(neighbor.first);
+                    REQUIRE_FALSE(it == neighbors.end());
+                    REQUIRE(it->second == neighbor.second);
+                }
+            }
         }
 
         SECTION("Edges and vertices and be added using a vector of pairs")
         {
             constexpr std::size_t num_vertices = 1000;
             constexpr std::size_t vertices_to_add = 1000;
-            init_list_test(num_vertices, vertices_to_add, true);
+            auto graph_pair = create_random_graph(num_vertices, true);
+            add_vertices_with_init_list(graph_pair, num_vertices, vertices_to_add, true);
+            auto [graph, adj_list] = graph_pair;
+            for (std::size_t i = 0; i < adj_list.size(); ++i) {
+                auto neighbors = graph.neighbors(i);
+                for (auto neighbor : adj_list[i]) {
+                    auto it = neighbors.find(neighbor.first);
+                    REQUIRE_FALSE(it == neighbors.end());
+                    REQUIRE(it->second == neighbor.second);
+                }
+            }
         }
     }
 
@@ -213,14 +231,33 @@ TEST_CASE("Vertices and edges can be added to GraphALs in various ways", "[Graph
         SECTION("Edges can be added manually to existing vertices")
         {
             constexpr std::size_t num_vertices = 1000;
-            valid_graph_test(create_random_graph(num_vertices, false, true));
+            auto graph_pair = create_random_graph(num_vertices, false, true);
+            auto [graph, adj_list] = graph_pair;
+            for (std::size_t i = 0; i < adj_list.size(); ++i) {
+                auto neighbors = graph.neighbors(i);
+                for (auto neighbor : adj_list[i]) {
+                    auto it = neighbors.find(neighbor.first);
+                    REQUIRE_FALSE(it == neighbors.end());
+                    REQUIRE(it->second == neighbor.second);
+                }
+            }
         }
 
         SECTION("Edges and vertices and be added using a vector of pairs")
         {
             constexpr std::size_t num_vertices = 1000;
             constexpr std::size_t vertices_to_add = 1000;
-            init_list_test(num_vertices, vertices_to_add, false, true);
+            auto graph_pair = create_random_graph(num_vertices, false, true);
+            add_vertices_with_init_list(graph_pair, num_vertices, vertices_to_add, false, true);
+            auto [graph, adj_list] = graph_pair;
+            for (std::size_t i = 0; i < adj_list.size(); ++i) {
+                auto neighbors = graph.neighbors(i);
+                for (auto neighbor : adj_list[i]) {
+                    auto it = neighbors.find(neighbor.first);
+                    REQUIRE_FALSE(it == neighbors.end());
+                    REQUIRE(it->second == neighbor.second);
+                }
+            }
         }
     }
 
@@ -229,14 +266,33 @@ TEST_CASE("Vertices and edges can be added to GraphALs in various ways", "[Graph
         SECTION("Edges can be added manually to existing vertices")
         {
             constexpr std::size_t num_vertices = 1000;
-            valid_graph_test(create_random_graph(num_vertices, true, true));
+            auto graph_pair = create_random_graph(num_vertices, true, true);
+            auto [graph, adj_list] = graph_pair;
+            for (std::size_t i = 0; i < adj_list.size(); ++i) {
+                auto neighbors = graph.neighbors(i);
+                for (auto neighbor : adj_list[i]) {
+                    auto it = neighbors.find(neighbor.first);
+                    REQUIRE_FALSE(it == neighbors.end());
+                    REQUIRE(it->second == neighbor.second);
+                }
+            }
         }
 
         SECTION("Edges and vertices and be added using a vector of pairs")
         {
             constexpr std::size_t num_vertices = 1000;
             constexpr std::size_t vertices_to_add = 1000;
-            init_list_test(num_vertices, vertices_to_add, true, true);
+            auto graph_pair = create_random_graph(num_vertices, true, true);
+            add_vertices_with_init_list(graph_pair, num_vertices, vertices_to_add, true, true);
+            auto [graph, adj_list] = graph_pair;
+            for (std::size_t i = 0; i < adj_list.size(); ++i) {
+                auto neighbors = graph.neighbors(i);
+                for (auto neighbor : adj_list[i]) {
+                    auto it = neighbors.find(neighbor.first);
+                    REQUIRE_FALSE(it == neighbors.end());
+                    REQUIRE(it->second == neighbor.second);
+                }
+            }
         }
     }
 }
@@ -813,7 +869,7 @@ struct A
 
 TEST_CASE("GraphALs can hold satellite data")
 {
-    auto graph = BasicGraphBuilder<A>{}.use_satellite_data().build_adj_list();
+    auto graph = BasicGraphBuilder<int, A>{}.use_satellite_data().build_adj_list();
     for (int i = 0; i < 10; ++i) {
         graph.add_vertex(A{i, i + 1});
     }
@@ -851,7 +907,7 @@ namespace bork_lib
 
 TEST_CASE("GraphALs can use non-arithmetic weight functions if default_weight is specialized")
 {
-    auto graph = BasicGraphBuilder<std::size_t, A>{}.directed().weighted().build_adj_list();
+    auto graph = BasicGraphBuilder<A>{}.directed().weighted().build_adj_list();
     for (int i = 0; i < 10; ++i) {
         graph.add_vertex();
     }
@@ -915,4 +971,19 @@ TEST_CASE("GraphAL size, empty and clear functions work as expected", "[GraphAL]
         REQUIRE_FALSE(graph.empty());
         REQUIRE(graph.size() == 2);
     }
+}
+
+TEST_CASE("GraphAL reserve function works as expected", "[GraphAL]")
+{
+    auto graph = BasicGraphBuilder<>{}.build_adj_list();
+    constexpr auto min_capacity = graph.min_capacity();
+    REQUIRE(graph.capacity() == min_capacity);
+
+    for (int i = 0; i < min_capacity + 1; ++i) {
+        graph.add_vertex();
+    }
+    REQUIRE(graph.capacity() == min_capacity * 2);
+
+    graph.reserve(min_capacity * 4);
+    REQUIRE(graph.capacity() == min_capacity * 4);
 }

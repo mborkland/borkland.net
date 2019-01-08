@@ -73,7 +73,7 @@ struct DFSData
 };
 
 /* Provides the default weight for any arithmetic type. The user must
- * create a custom specialization and inject it in the bork_lib namespace
+ * create a custom specialization and inject it into the bork_lib namespace
  * in order to use a user-defined weight function. The process is similar to
  * that of std::hash. */
 template<typename W, typename Enable = void> struct default_edge_weight {};
@@ -90,7 +90,12 @@ template<typename L> static constexpr void(*empty_vertex_func)(const L&) = [](co
 template<typename L, typename W>
 static constexpr void(*empty_edge_func)(const L&, const std::pair<L, W>&) = [](const L&, const std::pair<L, W>&){};
 
-template<typename AdjStructureType, typename L = std::size_t, typename V = std::size_t, typename W = int>
+/* Template parameters:
+ * AdjStructureType = the type a derived class uses to hold adjacency data
+ * L = label type
+ * V = vertex type
+ * W = weight type */
+template<typename AdjStructureType, typename L = std::size_t, typename W = int, typename V = std::size_t>
 class Graph
 {
 private:
@@ -149,6 +154,7 @@ public:
     bool directed() const noexcept { return is_directed; }
     bool labeled() const noexcept { return is_labeled; }
     bool has_satellite_data() const noexcept { return satellite_data; }
+    static constexpr std::size_t min_capacity() noexcept { return min_graph_capacity; }
     std::size_t capacity() const noexcept { return graph_capacity; }
     std::size_t size() const noexcept { return vertices.size(); }   // the number of vertices in the graph
     bool empty() const noexcept { return vertices.empty(); }        // is the graph empty?
@@ -157,10 +163,10 @@ public:
 
 protected:
     // no manual memory management so compiler-generated functions are sufficient
-    Graph(const Graph<AdjStructureType, L, V, W>&) = default;
-    Graph(Graph<AdjStructureType, L, V, W>&&) = default;
-    Graph<AdjStructureType, L, V, W>& operator=(const Graph<AdjStructureType, L, V, W>&) = default;
-    Graph<AdjStructureType, L, V, W>& operator=(Graph<AdjStructureType, L, V, W>&&) = default;
+    Graph(const Graph<AdjStructureType, L, W, V>&) = default;
+    Graph(Graph<AdjStructureType, L, W, V>&&) = default;
+    Graph<AdjStructureType, L, W, V>& operator=(const Graph<AdjStructureType, L, W, V>&) = default;
+    Graph<AdjStructureType, L, W, V>& operator=(Graph<AdjStructureType, L, W, V>&&) = default;
 
     std::unordered_map<L, Vertex<V>> vertices;         // the vertices and their associated data
     AdjStructureType adj_structure;                             // holds vertex neighbor data
@@ -188,12 +194,12 @@ protected:
     bool is_directed;
     static constexpr bool is_labeled = std::is_same_v<L, std::string>;
     bool satellite_data;
-    static constexpr std::size_t min_capacity = 8;
+    static constexpr std::size_t min_graph_capacity = 8;
     std::size_t graph_capacity;
 
     Graph(bool is_weighted, bool is_directed, bool satellite_data, std::size_t init_capacity)
             : is_weighted{is_weighted}, is_directed{is_directed}, satellite_data{satellite_data},
-              graph_capacity{std::max(init_capacity, min_capacity)} { vertices.reserve(graph_capacity); }
+              graph_capacity{std::max(init_capacity, min_graph_capacity)} { vertices.reserve(graph_capacity); }
 };
 
 /* Adds a vertex to the graph. Overloads are available to make it possible to specify almost any
@@ -201,8 +207,8 @@ protected:
  * outgoing_edges due to ambiguity. This function should be extended by any derived class, as it
  * only checks the validity of the edge lists and adds the vertex to the vertices data structure.
  * Derived classes are responsible for changes that needs to be made to their adjacency structures. */
-template<typename AdjStructureType, typename L, typename V, typename W>
-void Graph<AdjStructureType, L, V, W>::add_vertex(const std::vector<std::pair<L, W>>& outgoing_edges,
+template<typename AdjStructureType, typename L, typename W, typename V>
+void Graph<AdjStructureType, L, W, V>::add_vertex(const std::vector<std::pair<L, W>>& outgoing_edges,
                                                const std::vector<std::pair<L, W>>& incoming_edges,
                                                const V& data, const std::string& label)
 {
@@ -221,8 +227,8 @@ void Graph<AdjStructureType, L, V, W>::add_vertex(const std::vector<std::pair<L,
 /* Removes a vertex from the graph. Delegates to other functions that are
  * defined by the derived classes. Which function to delegate to depends
  * on if the graph is labeled or not. */
-template<typename AdjStructureType, typename L, typename V, typename W>
-void Graph<AdjStructureType, L, V, W>::remove_vertex(const L& label)
+template<typename AdjStructureType, typename L, typename W, typename V>
+void Graph<AdjStructureType, L, W, V>::remove_vertex(const L& label)
 {
     valid_label_check(label);
     if constexpr (is_labeled) {
@@ -242,9 +248,9 @@ void Graph<AdjStructureType, L, V, W>::remove_vertex(const L& label)
  * reference to a const std::pair<L, W> as its second, where W is the type of the weight function (int by default).
  * In order to not provide a process function that comes before one that is provided in the argument list, the empty
  * function pointers, bork_lib::empty_vertex_func<L> and bork_lib::empty_edge<L, W> can be passed into the function. */
-template<typename AdjStructureType, typename L, typename V, typename W>
+template<typename AdjStructureType, typename L, typename W, typename V>
 template<typename FV1, typename FE, typename FV2, typename>
-std::unordered_map<L, BFSData<L>> Graph<AdjStructureType, L, V, W>::bfs(const L& start, const FV1& process_vertex_early,
+std::unordered_map<L, BFSData<L>> Graph<AdjStructureType, L, W, V>::bfs(const L& start, const FV1& process_vertex_early,
         const FE& process_edge, const FV2& process_vertex_late) const
 {
     valid_label_check(start);
@@ -288,9 +294,9 @@ std::unordered_map<L, BFSData<L>> Graph<AdjStructureType, L, V, W>::bfs(const L&
  * because of the main loop. For information on the process functions, see the comment for the BFS function above. See
  * https://cs.stackexchange.com/questions/102130/process-functions-in-iterative-and-recursive-depth-first-search/102220
  * for information on this version of DFS. */
-template<typename AdjStructureType, typename L, typename V, typename W>
+template<typename AdjStructureType, typename L, typename W, typename V>
 template<typename FV1, typename FE, typename FV2, typename>
-std::unordered_map<L, DFSData<L>> Graph<AdjStructureType, L, V, W>::dfs(const L& start,
+std::unordered_map<L, DFSData<L>> Graph<AdjStructureType, L, W, V>::dfs(const L& start,
         const FV1& process_vertex_early, const FE& process_edge, const FV2& process_vertex_late) const
 {
     auto data = initialize_map_for_search<DFSData<L>>();
@@ -333,8 +339,8 @@ std::unordered_map<L, DFSData<L>> Graph<AdjStructureType, L, V, W>::dfs(const L&
 }
 
 /* Allows a Vertex object to be accessed via subscripting, const version. */
-template<typename AdjStructureType, typename L, typename V, typename W>
-const Vertex<V>& Graph<AdjStructureType, L, V, W>::operator[](const L& label) const
+template<typename AdjStructureType, typename L, typename W, typename V>
+const Vertex<V>& Graph<AdjStructureType, L, W, V>::operator[](const L& label) const
 {
     try {
         return vertices.at(label);
@@ -345,42 +351,46 @@ const Vertex<V>& Graph<AdjStructureType, L, V, W>::operator[](const L& label) co
 
 /* Allows a Vertex object to be accessed via subscripting, non-const version. If the graph holds
  * satellite data, the data held in the Vertex object can be modified via this function. */
-template<typename AdjStructureType, typename L, typename V, typename W>
-Vertex<V>& Graph<AdjStructureType, L, V, W>::operator[](const L& label)
+template<typename AdjStructureType, typename L, typename W, typename V>
+Vertex<V>& Graph<AdjStructureType, L, W, V>::operator[](const L& label)
 {
-    return const_cast<Vertex<V> &>(static_cast<const Graph<AdjStructureType, L, V, W>&>(*this)[label]);
+    return const_cast<Vertex<V> &>(static_cast<const Graph<AdjStructureType, L, W, V>&>(*this)[label]);
 }
 
-/* Removes all vertices and edges, resulting in an empty graph. */
-template<typename AdjStructureType, typename L, typename V, typename W>
-void Graph<AdjStructureType, L, V, W>::clear() noexcept
+/* Removes all vertices and edges, resulting in an empty graph. Can be
+ * extended by a derived class to clear any additional data structures
+ * used. */
+template<typename AdjStructureType, typename L, typename W, typename V>
+void Graph<AdjStructureType, L, W, V>::clear() noexcept
 {
     vertices.clear();
     adj_structure.clear();
     current_key = 0;
+    graph_capacity = 0;
+    reserve(min_graph_capacity);
 }
 
 /* Out_of_range exceptions that are used in multiple places. */
-template<typename AdjStructureType, typename L, typename V, typename W>
-const std::string Graph<AdjStructureType, L, V, W>::
+template<typename AdjStructureType, typename L, typename W, typename V>
+const std::string Graph<AdjStructureType, L, W, V>::
     invalid_label_exception{"Vertex with given label does not exist in graph."};
 
-template<typename AdjStructureType, typename L, typename V, typename W>
-const std::string Graph<AdjStructureType, L, V, W>::
+template<typename AdjStructureType, typename L, typename W, typename V>
+const std::string Graph<AdjStructureType, L, W, V>::
     invalid_edge_exception{"Edge does not exist in graph."};
 
-template<typename AdjStructureType, typename L, typename V, typename W>
-const std::string Graph<AdjStructureType, L, V, W>::
+template<typename AdjStructureType, typename L, typename W, typename V>
+const std::string Graph<AdjStructureType, L, W, V>::
     change_label_exception{"Label can only be changed for labeled graphs."};
 
-template<typename AdjStructureType, typename L, typename V, typename W>
-const std::string Graph<AdjStructureType, L, V, W>::
+template<typename AdjStructureType, typename L, typename W, typename V>
+const std::string Graph<AdjStructureType, L, W, V>::
     duplicate_label_exception{"Label already exists in graph."};
 
 /* Determines if a variadic number of labels exist by seeing if they are found in the vertices hash table. */
-template<typename AdjStructureType, typename L, typename V, typename W>
+template<typename AdjStructureType, typename L, typename W, typename V>
 template<typename... Ts>
-void Graph<AdjStructureType, L, V, W>::valid_label_check(Ts... labels) const
+void Graph<AdjStructureType, L, W, V>::valid_label_check(Ts... labels) const
 {
     try {
         (vertices.at(labels), ...);
@@ -390,9 +400,9 @@ void Graph<AdjStructureType, L, V, W>::valid_label_check(Ts... labels) const
 }
 
 /* Initializes maps with default values for a depth-first search. */
-template<typename AdjStructureType, typename L, typename V, typename W>
+template<typename AdjStructureType, typename L, typename W, typename V>
 template<typename T>
-std::unordered_map<L, T> Graph<AdjStructureType, L, V, W>::initialize_map_for_search(const T& default_value) const
+std::unordered_map<L, T> Graph<AdjStructureType, L, W, V>::initialize_map_for_search(const T& default_value) const
 {
     std::unordered_map<L, T> map(vertices.size());
     for (const auto& vertex_pair : vertices) {
@@ -403,8 +413,8 @@ std::unordered_map<L, T> Graph<AdjStructureType, L, V, W>::initialize_map_for_se
 }
 
 /* Creates a new vertices map after a vertex is removed in an unlabeled graph. */
-template<typename AdjStructureType, typename L, typename V, typename W>
-void Graph<AdjStructureType, L, V, W>::shift_vertices(std::size_t removed_key)
+template<typename AdjStructureType, typename L, typename W, typename V>
+void Graph<AdjStructureType, L, W, V>::shift_vertices(std::size_t removed_key)
 {
     std::unordered_map<L, Vertex<V>> new_vertices;
     std::for_each(vertices.begin(), vertices.end(), [&](const auto& vertex_pair){

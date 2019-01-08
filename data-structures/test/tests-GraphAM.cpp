@@ -870,7 +870,7 @@ struct A
 
 TEST_CASE("GraphAMs can hold satellite data")
 {
-    auto graph = BasicGraphBuilder<A>{}.use_satellite_data().build_adj_matrix();
+    auto graph = BasicGraphBuilder<int, A>{}.use_satellite_data().build_adj_matrix();
     for (int i = 0; i < 10; ++i) {
         graph.add_vertex(A{i, i + 1});
     }
@@ -908,7 +908,7 @@ namespace bork_lib
 
 TEST_CASE("GraphAMs can use non-arithmetic weight functions if default_weight is specialized")
 {
-    auto graph = BasicGraphBuilder<std::size_t, A>{}.directed().weighted().build_adj_matrix();
+    auto graph = BasicGraphBuilder<A>{}.directed().weighted().build_adj_matrix();
     for (int i = 0; i < 10; ++i) {
         graph.add_vertex();
     }
@@ -972,4 +972,32 @@ TEST_CASE("GraphAM size, empty and clear functions work as expected", "[GraphAM]
         REQUIRE_FALSE(graph.empty());
         REQUIRE(graph.size() == 2);
     }
+}
+
+TEST_CASE("GraphAM reserve function works as expected", "[GraphAM]")
+{
+    auto graph = BasicGraphBuilder<>{}.build_adj_matrix();
+    constexpr auto min_capacity = graph.min_capacity();
+    REQUIRE(graph.capacity() == min_capacity);
+
+    for (int i = 0; i < min_capacity + 1; ++i) {
+        graph.add_vertex();
+    }
+    REQUIRE(graph.capacity() == min_capacity * 2);
+
+    graph.reserve(min_capacity * 4);
+    REQUIRE(graph.capacity() == min_capacity * 4);
+}
+
+TEST_CASE("GraphAM shrink_to_fit function works as expected", "[GraphAM]")
+{
+    auto graph = create_small_graph();
+    graph.shrink_to_fit();
+    REQUIRE(graph.capacity() == graph.size());
+
+    for (int i = 0; i < 10000; ++i) {
+        graph.add_vertex();
+    }
+    graph.shrink_to_fit();
+    REQUIRE(graph.capacity() == graph.size());
 }
