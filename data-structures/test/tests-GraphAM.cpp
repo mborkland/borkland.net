@@ -70,7 +70,7 @@ TEST_CASE("GraphAM can be constructed using GraphBuilder", "[GraphAM]")
 std::pair<GraphAM<>, std::vector<std::unordered_map<std::size_t, int>>>
 create_random_graph(std::size_t num_vertices, bool directed = false, bool weighted = false)
 {
-    BasicGraphBuilder<> builder;
+    BasicGraphBuilder<> builder{num_vertices};
     if (directed) {
         builder.directed();
     }
@@ -667,7 +667,8 @@ TEST_CASE("GraphAMs can be searched using breadth-first search", "[GraphAM]")
         }
     }
 
-    SECTION("BFS does not access all vertices in a directed, connected graph when some vertices are not reachable from the start vertex")
+    SECTION("BFS does not access all vertices in a directed, connected graph when some vertices are not"
+            "reachable from the start vertex")
     {
         auto graph = create_small_graph(true);
         std::set<std::size_t> vertices_accessed;
@@ -751,7 +752,8 @@ TEST_CASE("GraphAMs can be searched using depth-first search", "[GraphAM]")
         }
     }
 
-    SECTION("DFS does not access all vertices in a directed, connected graph when some vertices are not reachable from the start vertex")
+    SECTION("DFS does not access all vertices in a directed, connected graph when some vertices are not"
+            "reachable from the start vertex")
     {
         auto graph = create_small_graph(true);
         std::set<std::size_t> vertices_accessed;
@@ -995,6 +997,7 @@ TEST_CASE("GraphAM shrink_to_fit function works as expected", "[GraphAM]")
     graph.shrink_to_fit();
     REQUIRE(graph.capacity() == graph.size());
 
+    graph.reserve(10010);
     for (int i = 0; i < 10000; ++i) {
         graph.add_vertex();
     }

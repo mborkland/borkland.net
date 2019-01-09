@@ -22,9 +22,14 @@ private:
     std::string vertex_label;
 
 public:
-    Vertex(bool satellite_data, bool labeled, V data = {}, std::string label = {})
+    explicit Vertex(bool satellite_data, bool labeled, V data = {}, std::string label = {})
       : satellite_data{satellite_data}, labeled{labeled}, vertex_data{std::move(data)},
       vertex_label{labeled ? std::move(label) : ""} {}
+
+    Vertex(const Vertex<V>&) = default;
+    Vertex(Vertex<V>&&) = default;
+    Vertex<V>& operator=(const Vertex<V>&) = default;
+    Vertex<V>& operator=(Vertex<V>&&) = default;
 
     const V& data() const
     {

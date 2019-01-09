@@ -70,7 +70,7 @@ TEST_CASE("GraphAL can be constructed using GraphBuilder", "[GraphAL]")
 std::pair<GraphAL<>, std::vector<std::unordered_map<std::size_t, int>>>
         create_random_graph(std::size_t num_vertices, bool directed = false, bool weighted = false)
 {
-    BasicGraphBuilder<> builder;
+    BasicGraphBuilder<> builder{num_vertices};
     if (directed) {
         builder.directed();
     }
@@ -667,7 +667,8 @@ TEST_CASE("GraphALs can be searched using breadth-first search", "[GraphAL]")
         }
     }
 
-    SECTION("BFS does not access all vertices in a directed, connected graph when some vertices are not reachable from the start vertex")
+    SECTION("BFS does not access all vertices in a directed, connected graph when some vertices are not"
+            "reachable from the start vertex")
     {
         auto graph = create_small_graph(true);
         std::set<std::size_t> vertices_accessed;
@@ -751,7 +752,8 @@ TEST_CASE("GraphALs can be searched using depth-first search", "[GraphAL]")
         }
     }
 
-    SECTION("DFS does not access all vertices in a directed, connected graph when some vertices are not reachable from the start vertex")
+    SECTION("DFS does not access all vertices in a directed, connected graph when some vertices are not"
+            "reachable from the start vertex")
     {
         auto graph = create_small_graph(true);
         std::set<std::size_t> vertices_accessed;
