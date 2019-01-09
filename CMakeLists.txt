@@ -3,7 +3,7 @@ project(source_files)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_COMPILER "C:/msys64/mingw64/bin/clang++.exe")
-set(CLANG++_COMPILER_FLAGS "-Wall -Werror -pedantic -Wconversion -O0")
+set(CLANG++_COMPILER_FLAGS "-Wall -Werror -pedantic -Wconversion -O3")
 set(CMAKE_CXX_FLAGS  "${CLANG++_COMPILER_FLAGS}" )
 
 include_directories(algorithms/sorting/heapsort)
@@ -59,3 +59,6 @@ target_link_libraries(tests-GraphAM Catch)
 add_executable(test data-structures/src/test.cpp)
 
 add_executable(heapsort-benchmark ${ALG_TEST_DIR}/heapsort-benchmark.cpp)
+add_executable(merge-sort-benchmark ${ALG_TEST_DIR}/merge-sort-benchmark.cpp)
+add_executable(quicksort-hoare-benchmark ${ALG_TEST_DIR}/quicksort-hoare-benchmark.cpp)
+add_executable(quicksort-lomuto-benchmark ${ALG_TEST_DIR}/quicksort-lomuto-benchmark.cpp)

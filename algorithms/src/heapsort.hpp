@@ -9,8 +9,8 @@
 namespace bork_lib
 {
 
-template<typename Iter>
-void max_heapify(Iter begin, std::size_t heap_size, Iter index)
+template<typename BidirIter>
+void max_heapify(BidirIter begin, std::size_t heap_size, BidirIter index)
 {
     auto left = begin, right = begin, end = begin;
     auto largest = index;
@@ -31,8 +31,8 @@ void max_heapify(Iter begin, std::size_t heap_size, Iter index)
     }
 }
 
-template<typename Iter>
-void build_max_heap(Iter begin, Iter end)
+template<typename BidirIter>
+void build_max_heap(BidirIter begin, BidirIter end)
 {
     auto heap_size = static_cast<std::size_t>(std::distance(begin, end));
     auto rit = begin;
@@ -45,8 +45,8 @@ void build_max_heap(Iter begin, Iter end)
     }
 }
 
-template<typename Iter>
-void heapsort(Iter begin, Iter end)
+template<typename BidirIter>
+void heapsort(BidirIter begin, BidirIter end)
 {
     build_max_heap(begin, end);
     auto heap_size = static_cast<std::size_t>(std::distance(begin, end));

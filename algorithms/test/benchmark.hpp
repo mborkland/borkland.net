@@ -14,11 +14,12 @@ using iter_type = std::vector<int>::iterator;
 void benchmark(const std::function<void(iter_type, iter_type)>& func, int min, int max, int step)
 {
     std::default_random_engine re {};
-    std::vector<int> vec;
     std::map<int, double> times;
 
     for(auto i = min; i <= max; i *= step) {
         std::uniform_int_distribution<> dist{-i, i};
+        std::vector<int> vec;
+        vec.reserve(static_cast<std::size_t>(i));
         for (int j = 0; j < i; ++j) {
             vec.push_back(dist(re));
         }
@@ -32,7 +33,6 @@ void benchmark(const std::function<void(iter_type, iter_type)>& func, int min, i
         }
         std::chrono::duration<double> time = stop - start;
         times[i] = time.count();
-        vec.clear();
     }
 
     std::cout << "Time to sort:\n";

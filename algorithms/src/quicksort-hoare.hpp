@@ -2,33 +2,33 @@
 #define QUICKSORT_HOARE_HPP
 
 #include <iterator>
-#include <iostream>
 
 namespace bork_lib
 {
-    template<typename InputIterator>
-    InputIterator partition(InputIterator low, InputIterator high)
+    template<typename RandAccIter>
+    RandAccIter partition(RandAccIter low, RandAccIter high)
     {
         auto pivot = low;
-        auto i = low - 1;
+        auto i = std::prev(low);
         auto j = high;
 
-        while (true)
-        {
+        while (true) {
             do {
                 ++i;
             } while (*i < *pivot);
             do {
                 --j;
             } while (*j > *pivot);
-            if (i >= j)
+            
+            if (i >= j) {
                 return j;
+            }
             std::iter_swap(i, j);
         }
     }
 
-    template<typename InputIterator>
-    void quicksort_hoare(InputIterator low, InputIterator high)
+    template<typename RandAccIter>
+    void quicksort_hoare(RandAccIter low, RandAccIter high)
     {
         if (high - 1 <= low)
             return;

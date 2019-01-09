@@ -6,16 +6,14 @@
 
 namespace bork_lib
 {
-    template<typename InputIterator>
-    InputIterator partition(InputIterator low, InputIterator high)
+    template<typename RandAccIter>
+    RandAccIter partition(RandAccIter low, RandAccIter high)
     {
-        auto pivot = *(high - 1);
-        auto i = low - 1;
+        auto pivot = std::prev(high);
+        auto i = std::prev(low);
 
-        for (auto j = low; j != high - 1; ++j)
-        {
-            if (*j <= pivot)
-            {
+        for (auto j = low; j != high - 1; ++j) {
+            if (*j <= *pivot) {
                 ++i;
                 std::iter_swap(i, j);
             }
@@ -25,8 +23,8 @@ namespace bork_lib
         return i + 1;
     }
 
-    template<typename InputIterator>
-    void quicksort_lomuto(InputIterator low, InputIterator high)
+    template<typename RandAccIter>
+    void quicksort_lomuto(RandAccIter low, RandAccIter high)
     {
         if (high - 1 <= low)
             return;
