@@ -26,9 +26,11 @@ private:
     using Graph<AdjMatrixType, L, W, V>::graph_capacity;
     using Graph<AdjMatrixType, L, W, V>::invalid_label_exception;
     using Graph<AdjMatrixType, L, W, V>::invalid_edge_exception;
+    using Graph<AdjMatrixType, L, W, V>::invalid_vertex_exception;
     using Graph<AdjMatrixType, L, W, V>::change_label_exception;
     using Graph<AdjMatrixType, L, W, V>::duplicate_label_exception;
-    using Graph<AdjMatrixType, L, W, V>::valid_label_check;
+    using Graph<AdjMatrixType, L, W, V>::repeat_edge_exception;
+    using Graph<AdjMatrixType, L, W, V>::validate_label;
     using Graph<AdjMatrixType, L, W, V>::shift_vertices;
     using Graph<AdjMatrixType, L, W, V>::is_weighted;
     using Graph<AdjMatrixType, L, W, V>::is_directed;
@@ -151,7 +153,8 @@ void GraphAM<L, W, V>::add_vertex(const std::vector<std::pair<L, W>>& outgoing_e
 template<typename L, typename W, typename V>
 void GraphAM<L, W, V>::add_edge(const label_type& orig, const label_type& dest, const weight_type& weight)
 {
-    valid_label_check(orig, dest);
+    validate_label(orig);
+    validate_label(dest);
     auto actual_weight = is_weighted ? weight : default_edge_weight<W>{}();
     auto orig_index = get_index(orig);
     auto dest_index = get_index(dest);
@@ -166,7 +169,8 @@ void GraphAM<L, W, V>::add_edge(const label_type& orig, const label_type& dest, 
 template<typename L, typename W, typename V>
 void GraphAM<L, W, V>::remove_edge(const label_type& orig, const label_type& dest)
 {
-    valid_label_check(orig, dest);
+    validate_label(orig);
+    validate_label(dest);
     auto orig_index = get_index(orig);
     auto dest_index = get_index(dest);
 
@@ -185,14 +189,11 @@ void GraphAM<L, W, V>::remove_edge(const label_type& orig, const label_type& des
 template<typename L, typename W, typename V>
 std::unordered_map<L, W> GraphAM<L, W, V>::neighbors(const label_type& label) const
 {
+    validate_label(label);
     std::unordered_map<L, W> neighbor_map;
     AdjType neighbors;
     if constexpr (is_labeled) {
-        try {
-            neighbors = adj_structure[labels_to_keys.at(label)];
-        } catch (const std::out_of_range& e) {
-            throw std::out_of_range{invalid_label_exception};
-        }
+        neighbors = adj_structure[labels_to_keys.at(label)];
     } else {
         neighbors = adj_structure[label];
     }
@@ -214,15 +215,12 @@ std::unordered_map<L, W> GraphAM<L, W, V>::neighbors(const label_type& label) co
 template<typename L, typename W, typename V>
 std::optional<W> GraphAM<L, W, V>::edge_weight(const label_type& orig, const label_type& dest) const noexcept
 {
+    validate_label(orig);
+    validate_label(dest);
     W weight;
     if constexpr (is_labeled) {
-        try {
-            weight = adj_structure[labels_to_keys.at(orig)][labels_to_keys.at(dest)];
-        } catch (const std::out_of_range& e) {
-            throw std::out_of_range{invalid_edge_exception};
-        }
+        weight = adj_structure[labels_to_keys.at(orig)][labels_to_keys.at(dest)];
     } else {
-        valid_label_check(orig, dest);
         weight = adj_structure[orig][dest];
     }
 
@@ -240,7 +238,7 @@ void GraphAM<L, W, V>::change_label(const label_type& label, const label_type& n
     if constexpr (!is_labeled) {
         throw std::logic_error{change_label_exception};
     } else {
-        valid_label_check(label);
+        validate_label(label);
         if (labels_to_keys.find(new_label) != labels_to_keys.end()) {
             throw std::invalid_argument{duplicate_label_exception};
         }
@@ -309,10 +307,15 @@ void GraphAM<L, W, V>::clear() noexcept
 template<typename L, typename W, typename V>
 void GraphAM<L, W, V>::check_edge_list(const std::vector<std::pair<L, W>>& edges)
 {
+    std::unordered_set<L> edges_seen;
     for (const auto& [neighbor, _] : edges) {
         auto neighbor_index = get_index(neighbor);
         if (neighbor_index >= current_key) {
-            throw std::invalid_argument{"Invalid edge in initializer list."};
+            throw std::invalid_argument{invalid_vertex_exception};
+        }
+
+        if (!edges_seen.insert(neighbor).second) {
+            throw std::invalid_argument{repeat_edge_exception};
         }
     }
 }

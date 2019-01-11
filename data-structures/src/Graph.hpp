@@ -174,10 +174,12 @@ protected:
 
     static const std::string invalid_label_exception;
     static const std::string invalid_edge_exception;
+    static const std::string invalid_vertex_exception;
     static const std::string change_label_exception;
     static const std::string duplicate_label_exception;
+    static const std::string repeat_edge_exception;
 
-    template<typename... Ts> void valid_label_check(Ts... labels) const;
+    typename std::unordered_map<L, Vertex<V>>::const_iterator validate_label(const L &label) const;
     virtual void check_edge_list(const std::vector<std::pair<L, W>>& edges) = 0;
     template <typename T> std::unordered_map<L, T> initialize_map_for_search(const T& default_value = {}) const;
 
@@ -230,7 +232,7 @@ void Graph<AdjStructureType, L, W, V>::add_vertex(const std::vector<std::pair<L,
 template<typename AdjStructureType, typename L, typename W, typename V>
 void Graph<AdjStructureType, L, W, V>::remove_vertex(const L& label)
 {
-    valid_label_check(label);
+    validate_label(label);
     if constexpr (is_labeled) {
         remove_string_vertex(label);
     } else {
@@ -253,7 +255,7 @@ template<typename FV1, typename FE, typename FV2, typename>
 std::unordered_map<L, BFSData<L>> Graph<AdjStructureType, L, W, V>::bfs(const L& start, const FV1& process_vertex_early,
         const FE& process_edge, const FV2& process_vertex_late) const
 {
-    valid_label_check(start);
+    validate_label(start);
     auto data = initialize_map_for_search<BFSData<L>>();
     data[start].distance = 0;
     auto status = initialize_map_for_search<SearchStatus>(SearchStatus::undiscovered);
@@ -342,11 +344,7 @@ std::unordered_map<L, DFSData<L>> Graph<AdjStructureType, L, W, V>::dfs(const L&
 template<typename AdjStructureType, typename L, typename W, typename V>
 const Vertex<V>& Graph<AdjStructureType, L, W, V>::operator[](const L& label) const
 {
-    try {
-        return vertices.at(label);
-    } catch (const std::out_of_range& e) {
-        throw std::out_of_range{invalid_label_exception};
-    }
+    return validate_label(label)->second;
 }
 
 /* Allows a Vertex object to be accessed via subscripting, non-const version. If the graph holds
@@ -381,20 +379,30 @@ const std::string Graph<AdjStructureType, L, W, V>::
 
 template<typename AdjStructureType, typename L, typename W, typename V>
 const std::string Graph<AdjStructureType, L, W, V>::
+        invalid_vertex_exception{"Vertex does not exist in graph."};
+
+template<typename AdjStructureType, typename L, typename W, typename V>
+const std::string Graph<AdjStructureType, L, W, V>::
     change_label_exception{"Label can only be changed for labeled graphs."};
 
 template<typename AdjStructureType, typename L, typename W, typename V>
 const std::string Graph<AdjStructureType, L, W, V>::
     duplicate_label_exception{"Label already exists in graph."};
 
-/* Determines if a variadic number of labels exist by seeing if they are found in the vertices hash table. */
 template<typename AdjStructureType, typename L, typename W, typename V>
-template<typename... Ts>
-void Graph<AdjStructureType, L, W, V>::valid_label_check(Ts... labels) const
+const std::string Graph<AdjStructureType, L, W, V>::
+    repeat_edge_exception{"Repeat edge in initializer list."};
+
+/* Searches for a label in the vertices hash table. Returns an iterator to it if it exists and
+ * throws an exception if it doesn't. */
+template<typename AdjStructureType, typename L, typename W, typename V>
+typename std::unordered_map<L, Vertex<V>>::const_iterator
+        Graph<AdjStructureType, L, W, V>::validate_label(const L &label) const
 {
-    try {
-        (vertices.at(labels), ...);
-    } catch (const std::out_of_range& e) {
+    auto it = vertices.find(label);
+    if (it != vertices.end()) {
+        return it;
+    } else {
         throw std::out_of_range{invalid_label_exception};
     }
 }

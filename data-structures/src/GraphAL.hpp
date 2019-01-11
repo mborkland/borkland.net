@@ -2,6 +2,7 @@
 #define GRAPH_AL_HPP
 
 #include <functional>
+#include <unordered_set>
 #include "Graph.hpp"
 
 namespace bork_lib
@@ -25,9 +26,11 @@ private:
     using Graph<AdjListType, L, W, V>::graph_capacity;
     using Graph<AdjListType, L, W, V>::invalid_label_exception;
     using Graph<AdjListType, L, W, V>::invalid_edge_exception;
+    using Graph<AdjListType, L, W, V>::invalid_vertex_exception;
     using Graph<AdjListType, L, W, V>::change_label_exception;
     using Graph<AdjListType, L, W, V>::duplicate_label_exception;
-    using Graph<AdjListType, L, W, V>::valid_label_check;
+    using Graph<AdjListType, L, W, V>::repeat_edge_exception;
+    using Graph<AdjListType, L, W, V>::validate_label;
     using Graph<AdjListType, L, W, V>::shift_vertices;
     using Graph<AdjListType, L, W, V>::is_weighted;
     using Graph<AdjListType, L, W, V>::is_directed;
@@ -113,7 +116,8 @@ void GraphAL<L, W, V>::add_vertex(const std::vector<std::pair<L, W>>& outgoing_e
 template<typename L, typename W, typename V>
 void GraphAL<L, W, V>::add_edge(const label_type& orig, const label_type& dest, const weight_type& weight)
 {
-    valid_label_check(orig, dest);
+    validate_label(orig);
+    validate_label(dest);
     auto actual_weight = is_weighted ? weight : default_edge_weight<W>{}();
     auto edge_pair = std::make_pair(dest, actual_weight);
     adj_structure[orig].insert(edge_pair);
@@ -126,7 +130,8 @@ void GraphAL<L, W, V>::add_edge(const label_type& orig, const label_type& dest, 
 template<typename L, typename W, typename V>
 void GraphAL<L, W, V>::remove_edge(const label_type& orig, const label_type& dest)
 {
-    valid_label_check(orig, dest);
+    validate_label(orig);
+    validate_label(dest);
     if (!adj_structure[orig].erase(dest)) {
         throw std::out_of_range{invalid_edge_exception};
     }
@@ -151,7 +156,8 @@ typename GraphAL<L, W, V>::AdjType GraphAL<L, W, V>::neighbors(const label_type&
 template<typename L, typename W, typename V>
 std::optional<W> GraphAL<L, W, V>::edge_weight(const label_type& orig, const label_type& dest) const noexcept
 {
-    valid_label_check(orig, dest);
+    validate_label(orig);
+    validate_label(dest);
     auto neighbors = adj_structure.at(orig);
     auto it = neighbors.find(dest);
     if (it != neighbors.end()) {
@@ -168,7 +174,7 @@ void GraphAL<L, W, V>::change_label(const label_type& label, const label_type& n
     if constexpr (!is_labeled) {
         throw std::logic_error{change_label_exception};
     } else {
-        valid_label_check(label);
+        validate_label(label);
         std::for_each(adj_structure.begin(), adj_structure.end(), [&](auto& vertex_pair){
             auto& [vertex_label, neighbor_map] = vertex_pair;
             if (vertex_label == new_label) {
@@ -208,11 +214,15 @@ void GraphAL<L, W, V>::reserve(std::size_t new_capacity)
 template<typename L, typename W, typename V>
 void GraphAL<L, W, V>::check_edge_list(const std::vector<std::pair<L, W>>& edges)
 {
+    std::unordered_set<L> edges_seen;
     for (const auto& [neighbor, _] : edges) {
-        try {
-            adj_structure.at(neighbor);
-        } catch (const std::out_of_range& e) {
-            throw std::invalid_argument{"Invalid edge in initializer list."};
+        auto it = adj_structure.find(neighbor);
+        if (it == adj_structure.end()) {
+            throw std::invalid_argument{invalid_vertex_exception};
+        }
+
+        if (!edges_seen.insert(neighbor).second) {
+            throw std::invalid_argument{repeat_edge_exception};
         }
     }
 }
