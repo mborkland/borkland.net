@@ -31,7 +31,7 @@ enum class SearchStatus
  * parent = vertex visited before each one during the search
  * The parent value for a vertex with no parent will be
  * std::numeric_limits<std::size_t>::max() for an unlabeled
- * graph and the string "__DFS_SEARCH_NO_PARENT__" for a labeled
+ * graph and the string "__BFS_SEARCH_NO_PARENT__" for a labeled
  * graph. */
 template<typename L>
 struct BFSData
@@ -41,7 +41,7 @@ struct BFSData
     constexpr BFSData()
     {
         if constexpr (std::is_same_v<L, std::string>) {
-            parent = "__DFS_SEARCH_NO_PARENT__";
+            parent = "__BFS_SEARCH_NO_PARENT__";
         } else {
             parent = std::numeric_limits<std::size_t>::max();
         }
